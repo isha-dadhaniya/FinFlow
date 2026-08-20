@@ -90,7 +90,7 @@ export default function FamilyReports() {
         </div>
         <button
           onClick={exportCSV}
-          className="flex items-center gap-2 px-4 py-2.5 bg-[#2A9D8F] text-white text-sm font-semibold rounded-xl hover:bg-[#21867A] transition-colors shadow-lg shadow-[#2A9D8F]/20"
+          className="flex items-center gap-2 px-4 py-2.5 bg-[#005B4F] text-white text-sm font-semibold rounded-xl hover:bg-[#004A40] transition-colors shadow-lg shadow-[#005B4F]/20 cursor-pointer"
         >
           <Download className="w-4 h-4" /> Export CSV Report
         </button>
@@ -104,7 +104,7 @@ export default function FamilyReports() {
         </div>
         <div className="bg-white rounded-2xl border border-[#E5E7EB] p-5">
           <p className="text-xs font-semibold text-[#6B7280] uppercase tracking-wider">Total Utility Bills</p>
-          <p className="text-2xl font-extrabold text-[#2A9D8F] mt-1">{formatCurrency(totalBills)}</p>
+          <p className="text-2xl font-extrabold text-[#005B4F] mt-1">{formatCurrency(totalBills)}</p>
         </div>
         <div className="bg-white rounded-2xl border border-[#E5E7EB] p-5">
           <p className="text-xs font-semibold text-[#6B7280] uppercase tracking-wider">Unsettled Balances</p>
@@ -125,10 +125,10 @@ export default function FamilyReports() {
                 <div key={cat} className="space-y-1">
                   <div className="flex justify-between text-xs font-semibold">
                     <span className="text-[#1F2937]">{cat}</span>
-                    <span className="text-[#2A9D8F]">{formatCurrency(amt)} ({pct}%)</span>
+                    <span className="text-[#005B4F]">{formatCurrency(amt)} ({pct}%)</span>
                   </div>
                   <div className="w-full h-2 bg-[#F4F6F8] rounded-full overflow-hidden">
-                    <div className="h-full bg-[#2A9D8F] rounded-full transition-all" style={{ width: `${pct}%` }} />
+                    <div className="h-full bg-[#005B4F] rounded-full transition-all" style={{ width: `${pct}%` }} />
                   </div>
                 </div>
               );

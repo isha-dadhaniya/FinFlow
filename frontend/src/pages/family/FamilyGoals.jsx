@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Plus, Trash2, Edit2, PiggyBank, Target, Calendar, Check, X, Sparkles, Users } from "lucide-react";
+import { Plus, Trash2, Edit2, PiggyBank, Target, Calendar, Check, X, Users } from "lucide-react";
+import ConfirmModal from "../../components/common/ConfirmModal";
 
 const API = "http://localhost:5000/api";
 const getToken = () => localStorage.getItem("token");
@@ -24,6 +25,7 @@ export default function FamilyGoals() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editItem, setEditItem] = useState(null);
+  const [deleteGoalId, setDeleteGoalId] = useState(null);
   const [contribGoal, setContribGoal] = useState(null);
   const [contribAmount, setContribAmount] = useState("");
 
@@ -142,10 +144,11 @@ export default function FamilyGoals() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Delete this shared family goal?")) return;
+  const confirmDelete = async () => {
+    if (!deleteGoalId) return;
     try {
-      await fetch(`${API}/workspace/family-goals/${id}`, { method: "DELETE", headers: headers() });
+      await fetch(`${API}/workspace/family-goals/${deleteGoalId}`, { method: "DELETE", headers: headers() });
+      setDeleteGoalId(null);
       loadGoals();
     } catch (err) {
       console.error("Delete family goal error:", err);
@@ -165,18 +168,17 @@ export default function FamilyGoals() {
         </div>
         <button
           onClick={handleOpenAddModal}
-          className="flex items-center gap-2 px-4 py-2.5 bg-[#2A9D8F] text-white text-sm font-semibold rounded-xl hover:bg-[#21867A] transition-colors shadow-lg shadow-[#2A9D8F]/20"
+          className="flex items-center gap-2 px-4 py-2.5 bg-[#005B4F] text-white text-sm font-semibold rounded-xl hover:bg-[#004A40] transition-colors shadow-lg shadow-[#005B4F]/20 cursor-pointer"
         >
           <Plus className="w-4 h-4" /> Create Family Goal
         </button>
       </div>
 
       {/* Hero KPI Card */}
-      <div className="bg-gradient-to-r from-[#2A9D8F] via-[#248277] to-[#1E6B62] rounded-2xl p-6 sm:p-7 text-white shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+      <div className="bg-gradient-to-r from-[#005B4F] via-[#007364] to-[#004A40] rounded-2xl p-6 sm:p-7 text-white shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div className="space-y-2">
-          <div className="flex items-center gap-2 text-white/80 text-xs font-bold uppercase tracking-wider">
-            <Sparkles className="w-4 h-4 text-amber-300" />
-            <span>Shared Family Milestone Progress</span>
+          <div className="text-white/80 text-xs font-bold uppercase tracking-wider">
+            Shared Family Milestone Progress
           </div>
           <p className="text-3xl sm:text-4xl font-extrabold tracking-tight">
             {formatCurrency(totalSaved)} <span className="text-lg font-normal text-white/70">/ {formatCurrency(totalTarget)}</span>
@@ -208,7 +210,7 @@ export default function FamilyGoals() {
             </p>
             <button
               onClick={handleOpenAddModal}
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#2A9D8F] text-white text-xs font-bold rounded-xl hover:bg-[#21867A]"
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#005B4F] text-white text-xs font-bold rounded-xl hover:bg-[#004A40] cursor-pointer"
             >
               <Plus className="w-4 h-4" /> Create Family Goal
             </button>
@@ -224,7 +226,7 @@ export default function FamilyGoals() {
                 <div>
                   <div className="flex items-start justify-between gap-2 mb-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-2xl bg-[#2A9D8F]/10 flex items-center justify-center text-2xl shrink-0">
+                      <div className="w-12 h-12 rounded-2xl bg-[#005B4F]/10 flex items-center justify-center text-2xl shrink-0">
                         {goal.icon || "🎯"}
                       </div>
                       <div>
@@ -239,10 +241,10 @@ export default function FamilyGoals() {
                     </div>
 
                     <div className="flex items-center gap-1">
-                      <button onClick={() => handleOpenEditModal(goal)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-[#2A9D8F]">
+                      <button onClick={() => handleOpenEditModal(goal)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-[#005B4F] cursor-pointer">
                         <Edit2 className="w-3.5 h-3.5" />
                       </button>
-                      <button onClick={() => handleDelete(goal._id)} className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500">
+                      <button onClick={() => setDeleteGoalId(goal._id)} className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 cursor-pointer">
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
@@ -258,11 +260,11 @@ export default function FamilyGoals() {
                     </div>
 
                     <div className="w-full h-3 bg-[#F4F6F8] rounded-full overflow-hidden">
-                      <div className={`h-full rounded-full transition-all duration-700 ${isComplete ? "bg-emerald-500" : "bg-[#2A9D8F]"}`} style={{ width: `${progress}%` }} />
+                      <div className={`h-full rounded-full transition-all duration-700 ${isComplete ? "bg-emerald-500" : "bg-[#005B4F]"}`} style={{ width: `${progress}%` }} />
                     </div>
 
                     <div className="flex justify-between items-center text-[11px]">
-                      <span className={`font-bold ${isComplete ? "text-emerald-600" : "text-[#2A9D8F]"}`}>
+                      <span className={`font-bold ${isComplete ? "text-emerald-600" : "text-[#005B4F]"}`}>
                         {Math.round(progress)}% {isComplete ? "🎉 Goal Achieved!" : "funded"}
                       </span>
                       {!isComplete && <span className="text-[#9CA3AF]">{formatCurrency(remaining)} remaining</span>}
@@ -281,7 +283,7 @@ export default function FamilyGoals() {
                         setContribGoal(goal);
                         setContribAmount("10000");
                       }}
-                      className="w-full py-2.5 bg-[#2A9D8F]/10 hover:bg-[#2A9D8F] text-[#2A9D8F] hover:text-white rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5"
+                      className="w-full py-2.5 bg-[#005B4F]/10 hover:bg-[#005B4F] text-[#005B4F] hover:text-white rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
                     >
                       <Plus className="w-3.5 h-3.5" /> Deposit Funds
                     </button>
@@ -302,7 +304,7 @@ export default function FamilyGoals() {
                 <h2 className="text-lg font-extrabold text-[#1F2937]">{editItem ? "Edit Family Goal" : "Create Family Savings Goal"}</h2>
                 <p className="text-xs text-[#6B7280] mt-0.5">Define a shared household savings target</p>
               </div>
-              <button onClick={() => setShowModal(false)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">
+              <button onClick={() => setShowModal(false)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -317,8 +319,8 @@ export default function FamilyGoals() {
                         key={cat.label}
                         type="button"
                         onClick={() => handleCategorySelect(cat)}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap border transition-all flex items-center gap-1.5 ${
-                          form.icon === cat.icon ? "border-[#2A9D8F] bg-[#2A9D8F]/10 text-[#2A9D8F]" : "border-[#E5E7EB] hover:bg-gray-50 text-[#4B5563]"
+                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap border transition-all flex items-center gap-1.5 cursor-pointer ${
+                          form.icon === cat.icon ? "border-[#005B4F] bg-[#005B4F]/10 text-[#005B4F]" : "border-[#E5E7EB] hover:bg-gray-50 text-[#4B5563]"
                         }`}
                       >
                         <span>{cat.icon}</span>
@@ -337,7 +339,7 @@ export default function FamilyGoals() {
                   value={form.title}
                   onChange={(e) => setForm({ ...form, title: e.target.value })}
                   required
-                  className="w-full h-11 px-3.5 border border-[#D1D5DB] rounded-xl text-sm outline-none focus:border-[#2A9D8F]"
+                  className="w-full h-11 px-3.5 border border-[#D1D5DB] rounded-xl text-sm outline-none focus:border-[#005B4F]"
                 />
               </div>
 
@@ -351,7 +353,7 @@ export default function FamilyGoals() {
                     onChange={(e) => setForm({ ...form, targetAmount: e.target.value })}
                     required
                     min="1"
-                    className="w-full h-11 px-3.5 border border-[#D1D5DB] rounded-xl text-sm font-extrabold text-[#1F2937] outline-none focus:border-[#2A9D8F]"
+                    className="w-full h-11 px-3.5 border border-[#D1D5DB] rounded-xl text-sm font-extrabold text-[#1F2937] outline-none focus:border-[#005B4F]"
                   />
                 </div>
                 <div>
@@ -362,7 +364,7 @@ export default function FamilyGoals() {
                     value={form.currentAmount}
                     onChange={(e) => setForm({ ...form, currentAmount: e.target.value })}
                     min="0"
-                    className="w-full h-11 px-3.5 border border-[#D1D5DB] rounded-xl text-sm font-bold text-[#1F2937] outline-none focus:border-[#2A9D8F]"
+                    className="w-full h-11 px-3.5 border border-[#D1D5DB] rounded-xl text-sm font-bold text-[#1F2937] outline-none focus:border-[#005B4F]"
                   />
                 </div>
               </div>
@@ -373,7 +375,7 @@ export default function FamilyGoals() {
                   type="date"
                   value={form.targetDate}
                   onChange={(e) => setForm({ ...form, targetDate: e.target.value })}
-                  className="w-full h-11 px-3.5 border border-[#D1D5DB] rounded-xl text-sm outline-none focus:border-[#2A9D8F]"
+                  className="w-full h-11 px-3.5 border border-[#D1D5DB] rounded-xl text-sm outline-none focus:border-[#005B4F]"
                 />
               </div>
 
@@ -385,8 +387,8 @@ export default function FamilyGoals() {
                       key={icon}
                       type="button"
                       onClick={() => setForm({ ...form, icon })}
-                      className={`h-11 rounded-xl text-xl flex items-center justify-center transition-all ${
-                        form.icon === icon ? "bg-[#2A9D8F] text-white shadow-md scale-105" : "bg-[#F9FAFB] hover:bg-gray-100 border border-gray-200"
+                      className={`h-11 rounded-xl text-xl flex items-center justify-center transition-all cursor-pointer ${
+                        form.icon === icon ? "bg-[#005B4F] text-white shadow-md scale-105" : "bg-[#F9FAFB] hover:bg-gray-100 border border-gray-200"
                       }`}
                     >
                       {icon}
@@ -396,10 +398,10 @@ export default function FamilyGoals() {
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100 mt-6">
-                <button type="button" onClick={() => setShowModal(false)} className="px-5 py-2.5 rounded-xl border border-gray-300 text-sm font-semibold text-gray-700 hover:bg-gray-50">
+                <button type="button" onClick={() => setShowModal(false)} className="px-5 py-2.5 rounded-xl border border-gray-300 text-sm font-semibold text-gray-700 hover:bg-gray-50 cursor-pointer">
                   Cancel
                 </button>
-                <button type="submit" className="px-6 py-2.5 rounded-xl bg-[#2A9D8F] text-white text-sm font-semibold hover:bg-[#21867A] transition-colors shadow-lg shadow-[#2A9D8F]/20">
+                <button type="submit" className="px-6 py-2.5 rounded-xl bg-[#005B4F] text-white text-sm font-semibold hover:bg-[#004A40] transition-colors shadow-lg shadow-[#005B4F]/20 cursor-pointer">
                   {editItem ? "Update Goal" : "Create Goal"}
                 </button>
               </div>
@@ -420,7 +422,7 @@ export default function FamilyGoals() {
                   <p className="text-xs text-[#6B7280]">{contribGoal.title || contribGoal.name}</p>
                 </div>
               </div>
-              <button onClick={() => setContribGoal(null)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">
+              <button onClick={() => setContribGoal(null)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -434,7 +436,7 @@ export default function FamilyGoals() {
                   onChange={(e) => setContribAmount(e.target.value)}
                   required
                   min="1"
-                  className="w-full h-12 px-3.5 border border-[#D1D5DB] rounded-xl text-lg font-extrabold text-[#1F2937] outline-none focus:border-[#2A9D8F]"
+                  className="w-full h-12 px-3.5 border border-[#D1D5DB] rounded-xl text-lg font-extrabold text-[#1F2937] outline-none focus:border-[#005B4F]"
                 />
               </div>
 
@@ -444,7 +446,7 @@ export default function FamilyGoals() {
                     key={chip}
                     type="button"
                     onClick={() => setContribAmount(String(chip))}
-                    className="py-1.5 bg-gray-100 hover:bg-emerald-50 text-gray-700 hover:text-emerald-800 text-xs font-bold rounded-lg transition-colors border border-gray-200"
+                    className="py-1.5 bg-gray-100 hover:bg-emerald-50 text-gray-700 hover:text-emerald-800 text-xs font-bold rounded-lg transition-colors border border-gray-200 cursor-pointer"
                   >
                     +{formatCurrency(chip)}
                   </button>
@@ -452,10 +454,10 @@ export default function FamilyGoals() {
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-3 border-t border-gray-100 mt-5">
-                <button type="button" onClick={() => setContribGoal(null)} className="px-4 py-2.5 rounded-xl border border-gray-300 text-xs font-semibold text-gray-700 hover:bg-gray-50">
+                <button type="button" onClick={() => setContribGoal(null)} className="px-4 py-2.5 rounded-xl border border-gray-300 text-xs font-semibold text-gray-700 hover:bg-gray-50 cursor-pointer">
                   Cancel
                 </button>
-                <button type="submit" className="px-6 py-2.5 rounded-xl bg-[#2A9D8F] text-white text-xs font-bold hover:bg-[#21867A] transition-colors shadow-lg shadow-[#2A9D8F]/20">
+                <button type="submit" className="px-6 py-2.5 rounded-xl bg-[#005B4F] text-white text-xs font-bold hover:bg-[#004A40] transition-colors shadow-lg shadow-[#005B4F]/20 cursor-pointer">
                   Confirm Deposit
                 </button>
               </div>
@@ -463,6 +465,17 @@ export default function FamilyGoals() {
           </div>
         </div>
       )}
+
+      {/* In-App Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={Boolean(deleteGoalId)}
+        onClose={() => setDeleteGoalId(null)}
+        onConfirm={confirmDelete}
+        title="Delete Family Goal"
+        message="Are you sure you want to delete this shared family savings goal? Any collected target records will be removed."
+        confirmText="Delete"
+        isDanger={true}
+      />
     </div>
   );
 }

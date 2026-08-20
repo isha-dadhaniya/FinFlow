@@ -73,7 +73,7 @@ export default function FamilyBudget() {
             setLimitAmount("");
             setShowModal(true);
           }}
-          className="flex items-center gap-2 px-4 py-2.5 bg-[#2A9D8F] text-white text-sm font-semibold rounded-xl hover:bg-[#21867A] transition-colors shadow-lg shadow-[#2A9D8F]/20"
+          className="flex items-center gap-2 px-4 py-2.5 bg-[#005B4F] text-white text-sm font-semibold rounded-xl hover:bg-[#004A40] transition-colors shadow-lg shadow-[#005B4F]/20 cursor-pointer"
         >
           <Plus className="w-4 h-4" /> Set Budget Limit
         </button>
@@ -91,14 +91,14 @@ export default function FamilyBudget() {
           </div>
           <div className="text-right">
             <span className="text-xs font-semibold text-[#6B7280] uppercase tracking-wider">Total Spent</span>
-            <p className={`text-2xl font-bold mt-1 ${isOver ? "text-rose-600" : "text-[#2A9D8F]"}`}>{formatCurrency(totalSpent)}</p>
+            <p className={`text-2xl font-bold mt-1 ${isOver ? "text-rose-600" : "text-[#005B4F]"}`}>{formatCurrency(totalSpent)}</p>
           </div>
         </div>
 
         {/* Progress Bar */}
         <div className="w-full h-3.5 bg-[#F4F6F8] rounded-full overflow-hidden mb-2">
           <div
-            className={`h-full rounded-full transition-all duration-500 ${isOver ? "bg-rose-500" : percent > 80 ? "bg-amber-500" : "bg-[#2A9D8F]"}`}
+            className={`h-full rounded-full transition-all duration-500 ${isOver ? "bg-rose-500" : percent > 80 ? "bg-amber-500" : "bg-[#005B4F]"}`}
             style={{ width: `${percent}%` }}
           />
         </div>
@@ -127,7 +127,7 @@ export default function FamilyBudget() {
                 <div key={cat._id} className="bg-white rounded-2xl border border-[#E5E7EB] p-5 shadow-xs">
                   <div className="flex items-center justify-between mb-2">
                     <p className="text-sm font-bold text-[#1F2937]">{cat.category}</p>
-                    <span className={`text-xs font-bold ${catOver ? "text-rose-600" : "text-[#2A9D8F]"}`}>
+                    <span className={`text-xs font-bold ${catOver ? "text-rose-600" : "text-[#005B4F]"}`}>
                       {cat.percentUsed || 0}%
                     </span>
                   </div>
@@ -137,7 +137,7 @@ export default function FamilyBudget() {
                   </div>
                   <div className="w-full h-2 bg-[#F4F6F8] rounded-full overflow-hidden">
                     <div
-                      className={`h-full rounded-full ${catOver ? "bg-rose-500" : "bg-[#2A9D8F]"}`}
+                      className={`h-full rounded-full ${catOver ? "bg-rose-500" : "bg-[#005B4F]"}`}
                       style={{ width: `${catPercent}%` }}
                     />
                   </div>
@@ -154,7 +154,7 @@ export default function FamilyBudget() {
           <div className="bg-white rounded-2xl shadow-2xl border border-[#E5E7EB] w-full max-w-lg p-6" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-lg font-bold text-[#1F2937]">Set Family Budget</h2>
-              <button onClick={() => setShowModal(false)} className="p-1.5 rounded-lg hover:bg-gray-100">
+              <button onClick={() => setShowModal(false)} className="p-1.5 rounded-lg hover:bg-gray-100 cursor-pointer">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -164,7 +164,7 @@ export default function FamilyBudget() {
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
-                  className="w-full h-11 px-3 border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#2A9D8F]"
+                  className="w-full h-11 px-3 border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#005B4F] bg-white cursor-pointer"
                 >
                   {CATEGORIES.map((c) => (
                     <option key={c} value={c}>{c}</option>
@@ -180,12 +180,12 @@ export default function FamilyBudget() {
                   onChange={(e) => setLimitAmount(e.target.value)}
                   required
                   min="1"
-                  className="w-full h-11 px-4 border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#2A9D8F]"
+                  className="w-full h-11 px-4 border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#005B4F]"
                 />
               </div>
               <button
                 type="submit"
-                className="w-full h-12 bg-[#2A9D8F] text-white text-sm font-semibold rounded-xl hover:bg-[#21867A] transition-colors"
+                className="w-full h-12 bg-[#005B4F] text-white text-sm font-semibold rounded-xl hover:bg-[#004A40] transition-colors shadow-lg shadow-[#005B4F]/20 cursor-pointer"
               >
                 Save Family Budget
               </button>

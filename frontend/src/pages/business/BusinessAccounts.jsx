@@ -30,11 +30,31 @@ const ACCOUNT_TYPES = [
   "Corporate Credit Line",
 ];
 
+const IFSC_REGEX = /^[A-Z]{4}0[A-Z0-9]{6}$/;
+
+const validateIfsc = (value) => {
+  if (!value || !value.trim()) return "IFSC Code is required (11 characters)";
+  const upper = value.trim().toUpperCase();
+  if (upper.length !== 11) return "IFSC Code must be exactly 11 characters";
+  if (!IFSC_REGEX.test(upper)) return "Invalid IFSC format (e.g. HDFC0000123)";
+  return "";
+};
+
+const validateAccountNumber = (value) => {
+  if (!value) return "";
+  if (!/^\d+$/.test(value)) return "Account number must contain digits only";
+  if (value.length < 8) return "Account number must be at least 8 digits";
+  if (value.length > 16) return "Account number must not exceed 16 digits";
+  return "";
+};
+
 export default function BusinessAccounts() {
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editItem, setEditItem] = useState(null);
+  const [errors, setErrors] = useState({});
+  const [touched, setTouched] = useState({});
 
   const [form, setForm] = useState({
     bankName: "HDFC Bank (Corporate)",
@@ -79,6 +99,8 @@ export default function BusinessAccounts() {
       nickname: "Primary Operating Current Account",
       openingBalance: "500000",
     });
+    setErrors({});
+    setTouched({});
     setShowModal(true);
   };
 
@@ -96,11 +118,29 @@ export default function BusinessAccounts() {
       nickname: acc.nickname || acc.name || "",
       openingBalance: String(acc.balance !== undefined ? acc.balance : acc.openingBalance || ""),
     });
+    setErrors({});
+    setTouched({});
     setShowModal(true);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Run all validations before submission
+    const newErrors = {};
+    const ifscErr = validateIfsc(form.ifscCode);
+    if (ifscErr) newErrors.ifscCode = ifscErr;
+
+    if (form.accountNumber) {
+      const accErr = validateAccountNumber(form.accountNumber);
+      if (accErr) newErrors.accountNumber = accErr;
+    }
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      setTouched({ ifscCode: true, accountNumber: true });
+      return;
+    }
+
     try {
       const finalBankName = form.bankName === "Other / Custom Bank" ? form.customBankName.trim() || "Custom Bank" : form.bankName;
       const accountName = form.nickname.trim() || `${finalBankName} (${form.type})`;
@@ -128,7 +168,8 @@ export default function BusinessAccounts() {
       });
 
       if (!res.ok) {
-        alert("Failed to save corporate account.");
+        const errorData = await res.json().catch(() => ({}));
+        alert(errorData.message || "Failed to save corporate account.");
         return;
       }
 
@@ -358,24 +399,76 @@ export default function BusinessAccounts() {
                   <input
                     type="text"
                     placeholder="********1234"
+                    inputMode="numeric"
+                    maxLength={16}
                     value={form.accountNumber}
-                    onChange={(e) => setForm({ ...form, accountNumber: e.target.value })}
+                    onChange={(e) => {
+                      const digitsOnly = e.target.value.replace(/\D/g, "").slice(0, 16);
+                      setForm({ ...form, accountNumber: digitsOnly });
+                      setTouched({ ...touched, accountNumber: true });
+                      setErrors({ ...errors, accountNumber: validateAccountNumber(digitsOnly) });
+                    }}
+                    onBlur={() => {
+                      setTouched({ ...touched, accountNumber: true });
+                      setErrors({ ...errors, accountNumber: validateAccountNumber(form.accountNumber) });
+                    }}
+                    onPaste={(e) => {
+                      e.preventDefault();
+                      const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 16);
+                      setForm({ ...form, accountNumber: pasted });
+                      setTouched({ ...touched, accountNumber: true });
+                      setErrors({ ...errors, accountNumber: validateAccountNumber(pasted) });
+                    }}
                     required
-                    className="w-full h-11 px-3.5 border border-[#D1D5DB] rounded-xl text-sm font-mono outline-none focus:border-[#1E232A]"
+                    className={`w-full h-11 px-3.5 border rounded-xl text-sm font-mono outline-none focus:border-[#1E232A] ${
+                      touched.accountNumber && errors.accountNumber
+                        ? "border-red-400 focus:border-red-500"
+                        : "border-[#D1D5DB] focus:border-[#1E232A]"
+                    }`}
                   />
+                  {touched.accountNumber && errors.accountNumber && (
+                    <p className="text-[11px] text-red-500 mt-1 font-medium">{errors.accountNumber}</p>
+                  )}
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div>
-                  <label className="block text-xs font-bold text-[#374151] uppercase tracking-wider mb-1.5">IFSC Code</label>
+                  <label className="block text-xs font-bold text-[#374151] uppercase tracking-wider mb-1.5">
+                    IFSC Code <span className="text-red-500">*</span>
+                  </label>
                   <input
                     type="text"
                     placeholder="HDFC0000123"
+                    maxLength={11}
                     value={form.ifscCode}
-                    onChange={(e) => setForm({ ...form, ifscCode: e.target.value.toUpperCase() })}
-                    className="w-full h-11 px-3.5 border border-[#D1D5DB] rounded-xl text-sm font-mono uppercase outline-none focus:border-[#1E232A]"
+                    onChange={(e) => {
+                      const upper = e.target.value.toUpperCase().slice(0, 11);
+                      setForm({ ...form, ifscCode: upper });
+                      setTouched({ ...touched, ifscCode: true });
+                      setErrors({ ...errors, ifscCode: validateIfsc(upper) });
+                    }}
+                    onBlur={() => {
+                      setTouched({ ...touched, ifscCode: true });
+                      setErrors({ ...errors, ifscCode: validateIfsc(form.ifscCode) });
+                    }}
+                    onPaste={(e) => {
+                      e.preventDefault();
+                      const pasted = e.clipboardData.getData("text").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 11);
+                      setForm({ ...form, ifscCode: pasted });
+                      setTouched({ ...touched, ifscCode: true });
+                      setErrors({ ...errors, ifscCode: validateIfsc(pasted) });
+                    }}
+                    required
+                    className={`w-full h-11 px-3.5 border rounded-xl text-sm font-mono uppercase outline-none focus:border-[#1E232A] ${
+                      touched.ifscCode && errors.ifscCode
+                        ? "border-red-400 focus:border-red-500"
+                        : "border-[#D1D5DB] focus:border-[#1E232A]"
+                    }`}
                   />
+                  {touched.ifscCode && errors.ifscCode && (
+                    <p className="text-[11px] text-red-500 mt-1 font-medium">{errors.ifscCode}</p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-[#374151] uppercase tracking-wider mb-1.5">Branch Name</label>

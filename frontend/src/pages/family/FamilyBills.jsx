@@ -34,6 +34,7 @@ import {
   Layers,
   ChevronRight,
 } from "lucide-react";
+import ConfirmModal from "../../components/common/ConfirmModal";
 
 const API = "http://localhost:5000/api";
 const getToken = () => localStorage.getItem("token");
@@ -163,6 +164,7 @@ export default function FamilyBills() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState(null);
+  const [deleteBillId, setDeleteBillId] = useState(null);
   const [filter, setFilter] = useState("all");
 
   // Modal Mode: "bbps" (GPay/Paytm style) or "custom" (Manual bill)
@@ -356,10 +358,11 @@ export default function FamilyBills() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Delete this shared family bill?")) return;
+  const confirmDelete = async () => {
+    if (!deleteBillId) return;
     try {
-      await fetch(`${API}/bills/${id}`, { method: "DELETE", headers: headers() });
+      await fetch(`${API}/bills/${deleteBillId}`, { method: "DELETE", headers: headers() });
+      setDeleteBillId(null);
       loadBills();
     } catch (err) {
       console.error("Delete bill error:", err);
@@ -397,7 +400,7 @@ export default function FamilyBills() {
         </div>
         <button
           onClick={openAddModal}
-          className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#2A9D8F] to-[#21867A] text-white text-sm font-semibold rounded-xl hover:from-[#21867A] hover:to-[#1B6F65] transition-all shadow-lg shadow-[#2A9D8F]/25 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]"
+          className="flex items-center gap-2 px-5 py-2.5 bg-[#005B4F] text-white text-sm font-semibold rounded-xl hover:bg-[#004A40] transition-all shadow-lg shadow-[#005B4F]/20 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
         >
           <Plus className="w-4 h-4" /> Add / Pay Bill (GPay Style)
         </button>
@@ -414,8 +417,8 @@ export default function FamilyBills() {
             <button
               key={status}
               onClick={() => setFilter(status)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                filter === status ? "bg-[#2A9D8F] text-white shadow-sm" : "bg-[#F4F6F8] text-[#6B7280] hover:bg-gray-200"
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                filter === status ? "bg-[#005B4F] text-white shadow-sm" : "bg-[#F4F6F8] text-[#6B7280] hover:bg-gray-200"
               }`}
             >
               {status === "all" ? "All" : status.charAt(0).toUpperCase() + status.slice(1)}
@@ -455,14 +458,14 @@ export default function FamilyBills() {
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => openEditModal(bill)}
-                        className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-[#2A9D8F] transition-colors"
+                        className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-[#005B4F] transition-colors cursor-pointer"
                         title="Edit Bill"
                       >
                         <Edit2 className="w-3.5 h-3.5" />
                       </button>
                       <button
-                        onClick={() => handleDelete(bill._id)}
-                        className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
+                        onClick={() => setDeleteBillId(bill._id)}
+                        className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors cursor-pointer"
                         title="Delete Bill"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -490,7 +493,7 @@ export default function FamilyBills() {
                       Due: {new Date(bill.dueDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
                     </span>
                     {bill.assignedTo && bill.assignedTo !== "All" && (
-                      <span className="flex items-center gap-1 text-[#2A9D8F] font-medium">
+                      <span className="flex items-center gap-1 text-[#005B4F] font-medium">
                         <Users className="w-3 h-3" /> {bill.assignedTo}
                       </span>
                     )}
@@ -906,7 +909,7 @@ export default function FamilyBills() {
                       value={form.name}
                       onChange={(e) => setForm({ ...form, name: e.target.value })}
                       required
-                      className="w-full h-11 px-4 border border-slate-200 rounded-xl text-sm outline-none focus:border-[#2A9D8F]"
+                      className="w-full h-11 px-4 border border-slate-200 rounded-xl text-sm outline-none focus:border-[#005B4F]"
                     />
                   </div>
 
@@ -920,7 +923,7 @@ export default function FamilyBills() {
                       onChange={(e) => setForm({ ...form, amount: e.target.value })}
                       required
                       min="1"
-                      className="w-full h-11 px-4 border border-slate-200 rounded-xl text-sm font-bold outline-none focus:border-[#2A9D8F]"
+                      className="w-full h-11 px-4 border border-slate-200 rounded-xl text-sm font-bold outline-none focus:border-[#005B4F]"
                     />
                   </div>
 
@@ -931,7 +934,7 @@ export default function FamilyBills() {
                       <select
                         value={form.category}
                         onChange={(e) => setForm({ ...form, category: e.target.value })}
-                        className="w-full h-11 px-3 border border-slate-200 rounded-xl text-xs outline-none focus:border-[#2A9D8F]"
+                        className="w-full h-11 px-3 border border-slate-200 rounded-xl text-xs outline-none focus:border-[#005B4F] bg-white cursor-pointer"
                       >
                         {BBPS_CATEGORIES.map((c) => (
                           <option key={c.id} value={c.id}>
@@ -945,7 +948,7 @@ export default function FamilyBills() {
                       <select
                         value={form.frequency}
                         onChange={(e) => setForm({ ...form, frequency: e.target.value })}
-                        className="w-full h-11 px-3 border border-slate-200 rounded-xl text-xs outline-none focus:border-[#2A9D8F]"
+                        className="w-full h-11 px-3 border border-slate-200 rounded-xl text-xs outline-none focus:border-[#005B4F] bg-white cursor-pointer"
                       >
                         {FREQUENCIES.map((f) => (
                           <option key={f.id} value={f.id}>
@@ -964,27 +967,27 @@ export default function FamilyBills() {
                       value={form.dueDate}
                       onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
                       required
-                      className="w-full h-11 px-4 border border-slate-200 rounded-xl text-sm outline-none focus:border-[#2A9D8F]"
+                      className="w-full h-11 px-4 border border-slate-200 rounded-xl text-sm outline-none focus:border-[#005B4F]"
                     />
                     <div className="flex gap-1.5 mt-2">
                       <button
                         type="button"
                         onClick={() => handleDateShortcut("today")}
-                        className="px-2 py-0.5 rounded text-[11px] bg-slate-100 hover:bg-teal-50 text-slate-600"
+                        className="px-2 py-0.5 rounded text-[11px] bg-slate-100 hover:bg-teal-50 text-slate-600 cursor-pointer"
                       >
                         Today
                       </button>
                       <button
                         type="button"
                         onClick={() => handleDateShortcut("7days")}
-                        className="px-2 py-0.5 rounded text-[11px] bg-slate-100 hover:bg-teal-50 text-slate-600"
+                        className="px-2 py-0.5 rounded text-[11px] bg-slate-100 hover:bg-teal-50 text-slate-600 cursor-pointer"
                       >
                         In 7 Days
                       </button>
                       <button
                         type="button"
                         onClick={() => handleDateShortcut("monthend")}
-                        className="px-2 py-0.5 rounded text-[11px] bg-slate-100 hover:bg-teal-50 text-slate-600"
+                        className="px-2 py-0.5 rounded text-[11px] bg-slate-100 hover:bg-teal-50 text-slate-600 cursor-pointer"
                       >
                         Month End
                       </button>
@@ -997,7 +1000,7 @@ export default function FamilyBills() {
                     <select
                       value={form.assignedTo}
                       onChange={(e) => setForm({ ...form, assignedTo: e.target.value })}
-                      className="w-full h-11 px-3 border border-slate-200 rounded-xl text-xs outline-none focus:border-[#2A9D8F]"
+                      className="w-full h-11 px-3 border border-slate-200 rounded-xl text-xs outline-none focus:border-[#005B4F] bg-white cursor-pointer"
                     >
                       <option value="All">All Family (Shared)</option>
                       {familyMembers.map((m) => (
@@ -1013,13 +1016,13 @@ export default function FamilyBills() {
                     <button
                       type="button"
                       onClick={() => setShowForm(false)}
-                      className="px-5 py-3 rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold"
+                      className="px-5 py-3 rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50 cursor-pointer"
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
-                      className="flex-1 py-3 px-6 bg-gradient-to-r from-[#2A9D8F] to-[#21867A] text-white text-sm font-bold rounded-xl shadow-md"
+                      className="flex-1 py-3 px-6 bg-[#005B4F] hover:bg-[#004A40] text-white text-sm font-bold rounded-xl shadow-md transition-colors cursor-pointer"
                     >
                       {editItem ? "Update Bill" : "Add Bill"}
                     </button>
@@ -1030,6 +1033,17 @@ export default function FamilyBills() {
           </div>
         </div>
       )}
+
+      {/* In-App Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={Boolean(deleteBillId)}
+        onClose={() => setDeleteBillId(null)}
+        onConfirm={confirmDelete}
+        title="Delete Family Bill"
+        message="Are you sure you want to delete this shared family bill record?"
+        confirmText="Delete"
+        isDanger={true}
+      />
     </div>
   );
 }

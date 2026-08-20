@@ -45,9 +45,10 @@ const ACCOUNT_TYPES = [
 const IFSC_REGEX = /^[A-Z]{4}0[A-Z0-9]{6}$/;
 
 const validateIfsc = (value) => {
-  if (!value) return "";
-  if (value.length !== 11) return "IFSC Code must be exactly 11 characters";
-  if (!IFSC_REGEX.test(value)) return "Invalid IFSC format (e.g. SBIN0001234)";
+  if (!value || !value.trim()) return "IFSC Code is required (11 characters)";
+  const upper = value.trim().toUpperCase();
+  if (upper.length !== 11) return "IFSC Code must be exactly 11 characters";
+  if (!IFSC_REGEX.test(upper)) return "Invalid IFSC format (e.g. SBIN0001234)";
   return "";
 };
 
@@ -55,7 +56,7 @@ const validateAccountNumber = (value) => {
   if (!value) return "";
   if (!/^\d+$/.test(value)) return "Account number must contain digits only";
   if (value.length < 8) return "Account number must be at least 8 digits";
-  if (value.length > 14) return "Account number must not exceed 14 digits";
+  if (value.length > 16) return "Account number must not exceed 16 digits";
   return "";
 };
 
@@ -137,13 +138,12 @@ export default function Accounts() {
 
   // Compute whether the form has validation errors that should block submission
   const hasValidationErrors = () => {
-    const ifscErr = form.ifscCode ? validateIfsc(form.ifscCode) : "";
+    const ifscErr = validateIfsc(form.ifscCode);
     const accErr = form.accountNumber ? validateAccountNumber(form.accountNumber) : "";
-    // Block if there are format errors, or if required validated fields are too short
+    // Block if there are format errors, or if required validated fields are invalid length
     if (ifscErr) return true;
     if (accErr) return true;
-    if (form.accountNumber && form.accountNumber.length < 8) return true;
-    if (form.ifscCode && form.ifscCode.length !== 11) return true;
+    if (form.accountNumber && (form.accountNumber.length < 8 || form.accountNumber.length > 16)) return true;
     return false;
   };
 
@@ -152,10 +152,9 @@ export default function Accounts() {
 
     // Run all validations before submission
     const newErrors = {};
-    if (form.ifscCode) {
-      const ifscErr = validateIfsc(form.ifscCode);
-      if (ifscErr) newErrors.ifscCode = ifscErr;
-    }
+    const ifscErr = validateIfsc(form.ifscCode);
+    if (ifscErr) newErrors.ifscCode = ifscErr;
+
     if (form.accountNumber) {
       const accErr = validateAccountNumber(form.accountNumber);
       if (accErr) newErrors.accountNumber = accErr;
@@ -466,10 +465,10 @@ export default function Accounts() {
                     type="text"
                     placeholder="********1234"
                     inputMode="numeric"
-                    maxLength={14}
+                    maxLength={16}
                     value={form.accountNumber}
                     onChange={(e) => {
-                      const digitsOnly = e.target.value.replace(/\D/g, "").slice(0, 14);
+                      const digitsOnly = e.target.value.replace(/\D/g, "").slice(0, 16);
                       setForm({ ...form, accountNumber: digitsOnly });
                       setTouched({ ...touched, accountNumber: true });
                       setErrors({ ...errors, accountNumber: validateAccountNumber(digitsOnly) });
@@ -480,7 +479,7 @@ export default function Accounts() {
                     }}
                     onPaste={(e) => {
                       e.preventDefault();
-                      const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 14);
+                      const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 16);
                       setForm({ ...form, accountNumber: pasted });
                       setTouched({ ...touched, accountNumber: true });
                       setErrors({ ...errors, accountNumber: validateAccountNumber(pasted) });
@@ -502,7 +501,7 @@ export default function Accounts() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div>
                   <label className="block text-xs font-bold text-[#374151] uppercase tracking-wider mb-1.5">
-                    IFSC Code
+                    IFSC Code <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -526,6 +525,7 @@ export default function Accounts() {
                       setTouched({ ...touched, ifscCode: true });
                       setErrors({ ...errors, ifscCode: validateIfsc(pasted) });
                     }}
+                    required
                     className={`w-full h-11 px-3.5 border rounded-xl text-sm font-mono uppercase outline-none focus:ring-2 focus:ring-[#005B4F]/10 ${
                       touched.ifscCode && errors.ifscCode
                         ? "border-red-400 focus:border-red-500"

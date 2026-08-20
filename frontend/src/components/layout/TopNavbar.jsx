@@ -4,6 +4,8 @@ import {
   Bell,
   Search,
   User,
+  Users,
+  Briefcase,
   Settings,
   LogOut,
   ChevronDown,
@@ -13,6 +15,37 @@ import {
 import { useNavigate, Link } from "react-router-dom";
 import { fetchNotifications, markNotificationRead } from "../../api/services";
 import { useWorkspace } from "../../context/WorkspaceContext";
+
+const WORKSPACE_ICONS = {
+  personal: {
+    icon: User,
+    bgColor: "bg-emerald-50",
+    textColor: "text-emerald-600",
+    borderColor: "border-emerald-100",
+  },
+  family: {
+    icon: Users,
+    bgColor: "bg-purple-50",
+    textColor: "text-purple-600",
+    borderColor: "border-purple-100",
+  },
+  business: {
+    icon: Briefcase,
+    bgColor: "bg-blue-50",
+    textColor: "text-blue-600",
+    borderColor: "border-blue-100",
+  },
+};
+
+function WorkspaceIconBadge({ modeId, size = "w-6 h-6", iconSize = "w-3.5 h-3.5" }) {
+  const conf = WORKSPACE_ICONS[modeId] || WORKSPACE_ICONS.personal;
+  const Icon = conf.icon;
+  return (
+    <div className={`${size} rounded-full ${conf.bgColor} ${conf.textColor} ${conf.borderColor} border flex items-center justify-center shrink-0`}>
+      <Icon className={iconSize} strokeWidth={2} />
+    </div>
+  );
+}
 
 export default function TopNavbar({ onOpenMobileMenu, isCollapsed }) {
   const navigate = useNavigate();
@@ -92,15 +125,15 @@ export default function TopNavbar({ onOpenMobileMenu, isCollapsed }) {
                 setNotifDropdownOpen(false);
                 setUserDropdownOpen(false);
               }}
-              className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#F4F6F8] hover:bg-gray-100 border border-[#E5E7EB] text-xs sm:text-sm font-bold text-[#1F2937] transition-all cursor-pointer shadow-xs"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#F4F6F8] hover:bg-gray-100 border border-[#E5E7EB] text-xs sm:text-sm font-bold text-[#1F2937] transition-all cursor-pointer shadow-xs"
             >
-              <span className="text-base">{activeModeConfig.emoji}</span>
+              <WorkspaceIconBadge modeId={activeMode} size="w-6 h-6" iconSize="w-3.5 h-3.5" />
               <span>{activeModeConfig.label}</span>
               <ChevronDown className={`w-3.5 h-3.5 text-gray-500 transition-transform duration-200 ${workspaceSwitcherOpen ? "rotate-180" : ""}`} />
             </button>
           ) : (
-            <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#F4F6F8] border border-[#E5E7EB] text-xs sm:text-sm font-bold text-[#1F2937]">
-              <span className="text-base">{activeModeConfig.emoji}</span>
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#F4F6F8] border border-[#E5E7EB] text-xs sm:text-sm font-bold text-[#1F2937]">
+              <WorkspaceIconBadge modeId={activeMode} size="w-6 h-6" iconSize="w-3.5 h-3.5" />
               <span>{activeModeConfig.label}</span>
             </div>
           )}
@@ -119,12 +152,12 @@ export default function TopNavbar({ onOpenMobileMenu, isCollapsed }) {
                     setWorkspaceSwitcherOpen(false);
                     navigate(`/app/${mode.id}/dashboard`);
                   }}
-                  className={`w-full flex items-center justify-between gap-2.5 px-3 py-2.5 rounded-xl text-left transition-colors ${
+                  className={`w-full flex items-center justify-between gap-2.5 px-3 py-2 rounded-xl text-left transition-colors cursor-pointer ${
                     mode.isActive ? "bg-[#005B4F]/10 text-[#005B4F]" : "hover:bg-gray-50 text-[#1F2937]"
                   }`}
                 >
                   <div className="flex items-center gap-2.5">
-                    <span className="text-base">{mode.emoji}</span>
+                    <WorkspaceIconBadge modeId={mode.id} size="w-7 h-7" iconSize="w-4 h-4" />
                     <span className="text-xs font-bold">{mode.label}</span>
                   </div>
                   {mode.isActive && <Check className="w-4 h-4 text-[#005B4F]" />}

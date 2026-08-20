@@ -4,9 +4,16 @@ const Account = require("../models/Account");
 
 const getExpenses = async (req, res) => {
   try {
-    const { module, category, startDate, endDate } = req.query;
+    const { module, workspace, category, startDate, endDate } = req.query;
+    const activeModule = module || workspace;
     const filter = { userId: req.user.id };
-    if (module) filter.module = module;
+    if (activeModule) {
+      if (activeModule === "personal") {
+        filter.module = { $in: ["personal", null, undefined, ""] };
+      } else {
+        filter.module = activeModule;
+      }
+    }
     if (category) filter.category = category;
     if (startDate || endDate) {
       filter.date = {};

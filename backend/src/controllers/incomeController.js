@@ -4,9 +4,16 @@ const Account = require("../models/Account");
 
 const getIncomes = async (req, res) => {
   try {
-    const { workspace, category, startDate, endDate } = req.query;
+    const { workspace, module, category, startDate, endDate } = req.query;
+    const activeWorkspace = workspace || module;
     const filter = { userId: req.user.id };
-    if (workspace) filter.workspace = workspace;
+    if (activeWorkspace) {
+      if (activeWorkspace === "personal") {
+        filter.workspace = { $in: ["personal", null, undefined, ""] };
+      } else {
+        filter.workspace = activeWorkspace;
+      }
+    }
     if (category) filter.category = category;
     if (startDate || endDate) {
       filter.date = {};

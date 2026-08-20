@@ -40,11 +40,11 @@ const getDashboardStats = async (req, res) => {
     const currentMonth = now.getMonth() + 1;
     const currentYear = now.getFullYear();
     const budgetDoc = await Budget.findOne({ userId, month: currentMonth, year: currentYear, category: "Overall" });
-    const budgetLimit = budgetDoc ? budgetDoc.limitAmount : 5000;
+    const budgetLimit = budgetDoc ? budgetDoc.limitAmount : 0;
     const budgetRemaining = Math.max(0, budgetLimit - monthlyExpenses);
 
     // Total Balance
-    const totalBalance = (totalIncome > 0 ? totalIncome : 12500) - totalExpenses;
+    const totalBalance = totalIncome - totalExpenses;
 
     // Family contributions
     const familyContributions = await Contribution.find({ userId, type: "family" });
@@ -79,21 +79,21 @@ const getDashboardStats = async (req, res) => {
 
       monthlyChartData.push({
         month: monthName,
-        income: mIncome || (Math.floor(Math.random() * 3000) + 2000),
-        expense: mExpenses || (Math.floor(Math.random() * 2000) + 1000),
-        profit: (mIncome || 3500) - (mExpenses || 1500),
+        income: mIncome,
+        expense: mExpenses,
+        profit: mIncome - mExpenses,
       });
     }
 
     res.status(200).json({
       totalBalance,
-      monthlyIncome: monthlyIncome || 6450,
-      monthlyExpenses: monthlyExpenses || 2180,
+      monthlyIncome,
+      monthlyExpenses,
       budgetRemaining,
       budgetLimit,
       pendingInvoices: pendingInvoicesCount,
-      familyContributions: totalFamilyContributions || 1200,
-      groupExpenses: totalGroupExpenses || 850,
+      familyContributions: totalFamilyContributions,
+      groupExpenses: totalGroupExpenses,
       recentTransactions,
       notifications,
       monthlyChartData,

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Plus, Edit2, Trash2, Users, X, Shield, Eye, UserPlus, Mail, IndianRupee, AlertCircle, CheckCircle2 } from "lucide-react";
 import { fetchFamilyMembers, createFamilyMember, updateFamilyMember, deleteFamilyMember } from "../../api/services";
+import ConfirmModal from "../../components/common/ConfirmModal";
 
 const ROLES = ["Owner", "Parent/Admin", "Member", "Child"];
 const RELATIONSHIPS = ["Father", "Mother", "Son", "Daughter", "Spouse", "Sibling", "Grandparent", "Other"];
@@ -14,6 +15,7 @@ export default function FamilyMembers() {
   const [submitting, setSubmitting] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState(null);
+  const [deleteMemberId, setDeleteMemberId] = useState(null);
   const [errorMsg, setErrorMsg] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
   const [form, setForm] = useState({
@@ -31,20 +33,52 @@ export default function FamilyMembers() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const res = await fetchFamilyMembers();
-      setMembers(Array.isArray(res.data) ? res.data : []);
-    } catch (err) {
-      console.error("Error loading family members:", err);
-      // Fallback direct fetch
+      let apiMembers = [];
       try {
-        const token = localStorage.getItem("token");
-        const directRes = await fetch("http://localhost:5000/api/family/members", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = await directRes.json();
-        setMembers(Array.isArray(data) ? data : []);
+        const res = await fetchFamilyMembers();
+        apiMembers = Array.isArray(res.data) ? res.data : [];
+      } catch (err) {
+        console.error("Error loading family members:", err);
+        try {
+          const token = localStorage.getItem("token");
+          const directRes = await fetch("http://localhost:5000/api/family/members", {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const data = await directRes.json();
+          apiMembers = Array.isArray(data) ? data : [];
+        } catch {
+          apiMembers = [];
+        }
+      }
+
+      // Check workspace metadata for invited family members created in Settings
+      try {
+        const wsConfig = JSON.parse(localStorage.getItem("finflow_workspaces_config") || "{}");
+        const familyInvites = wsConfig?.family?.members || [];
+        
+        const existingEmails = new Set(apiMembers.map((m) => (m.email || "").toLowerCase()).filter(Boolean));
+        const localMembers = [];
+
+        for (const invite of familyInvites) {
+          const email = (invite.email || "").trim();
+          if (email && !existingEmails.has(email.toLowerCase())) {
+            const userPart = email.includes("@") ? email.split("@")[0] : email;
+            const name = userPart.charAt(0).toUpperCase() + userPart.slice(1);
+            localMembers.push({
+              _id: `ws-${email}`,
+              name,
+              email,
+              role: invite.role || "Member",
+              relationship: "Other",
+              spendingLimit: 0,
+              createdAt: new Date().toISOString(),
+            });
+            existingEmails.add(email.toLowerCase());
+          }
+        }
+        setMembers([...apiMembers, ...localMembers]);
       } catch {
-        setMembers([]);
+        setMembers(apiMembers);
       }
     } finally {
       setLoading(false);
@@ -111,23 +145,24 @@ export default function FamilyMembers() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to remove this family member?")) return;
+  const confirmDelete = async () => {
+    if (!deleteMemberId) return;
     try {
-      await deleteFamilyMember(id);
-      setSuccessMsg("Family member removed.");
+      await deleteFamilyMember(deleteMemberId);
+      setSuccessMsg("Family member removed successfully.");
       setTimeout(() => setSuccessMsg(""), 3500);
+      setDeleteMemberId(null);
       loadData();
     } catch (err) {
       console.error("Error deleting member:", err);
-      alert("Failed to delete member");
+      setErrorMsg("Failed to delete member");
     }
   };
 
   const roleColors = {
     Owner: "bg-purple-50 text-purple-700 border border-purple-200",
     "Parent/Admin": "bg-blue-50 text-blue-700 border border-blue-200",
-    Member: "bg-[#2A9D8F]/10 text-[#2A9D8F] border border-[#2A9D8F]/20",
+    Member: "bg-[#005B4F]/10 text-[#005B4F] border border-[#005B4F]/20",
     Child: "bg-amber-50 text-amber-700 border border-amber-200",
   };
 
@@ -148,7 +183,7 @@ export default function FamilyMembers() {
         </div>
         <button
           onClick={handleOpenAdd}
-          className="flex items-center gap-2 px-4 py-2.5 bg-[#2A9D8F] text-white text-sm font-semibold rounded-xl hover:bg-[#21867A] transition-all shadow-md shadow-[#2A9D8F]/20 active:scale-[0.98] cursor-pointer"
+          className="flex items-center gap-2 px-4 py-2.5 bg-[#005B4F] text-white text-sm font-semibold rounded-xl hover:bg-[#004A40] transition-all shadow-md shadow-[#005B4F]/20 active:scale-[0.98] cursor-pointer"
         >
           <UserPlus className="w-4 h-4" /> Add Member
         </button>
@@ -170,7 +205,7 @@ export default function FamilyMembers() {
           ))
         ) : members.length === 0 ? (
           <div className="col-span-full bg-white rounded-2xl border border-[#E5E7EB] p-12 text-center shadow-xs space-y-3">
-            <div className="w-14 h-14 rounded-2xl bg-[#2A9D8F]/10 text-[#2A9D8F] flex items-center justify-center mx-auto">
+            <div className="w-14 h-14 rounded-2xl bg-[#005B4F]/10 text-[#005B4F] flex items-center justify-center mx-auto">
               <Users className="w-7 h-7" />
             </div>
             <h3 className="text-base font-bold text-[#1F2937]">No Family Members Added</h3>
@@ -179,7 +214,7 @@ export default function FamilyMembers() {
             </p>
             <button
               onClick={handleOpenAdd}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-[#2A9D8F] text-white text-xs font-bold rounded-xl hover:bg-[#21867A] transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-[#005B4F] text-white text-xs font-bold rounded-xl hover:bg-[#004A40] transition-colors cursor-pointer"
             >
               <Plus className="w-4 h-4" /> Add First Member
             </button>
@@ -195,7 +230,7 @@ export default function FamilyMembers() {
                 <div>
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#2A9D8F] to-[#21867A] text-white font-extrabold text-base flex items-center justify-center shadow-xs">
+                      <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#005B4F] to-[#008573] text-white font-extrabold text-base flex items-center justify-center shadow-xs">
                         {m.name ? m.name[0].toUpperCase() : "M"}
                       </div>
                       <div>
@@ -206,13 +241,13 @@ export default function FamilyMembers() {
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => handleOpenEdit(m)}
-                        className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-[#2A9D8F] transition-colors cursor-pointer"
+                        className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-[#005B4F] transition-colors cursor-pointer"
                         title="Edit Member"
                       >
                         <Edit2 className="w-3.5 h-3.5" />
                       </button>
                       <button
-                        onClick={() => handleDelete(m._id)}
+                        onClick={() => setDeleteMemberId(m._id)}
                         className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors cursor-pointer"
                         title="Delete Member"
                       >
@@ -231,7 +266,7 @@ export default function FamilyMembers() {
                   {m.spendingLimit > 0 && (
                     <div className="flex items-center justify-between text-xs font-semibold text-gray-700 bg-[#F4F6F8] p-2.5 rounded-xl mt-3">
                       <span className="text-gray-500">Monthly Allowance:</span>
-                      <span className="text-[#2A9D8F] font-bold">{formatINR(m.spendingLimit)}</span>
+                      <span className="text-[#005B4F] font-bold">{formatINR(m.spendingLimit)}</span>
                     </div>
                   )}
                 </div>
@@ -263,7 +298,7 @@ export default function FamilyMembers() {
           >
             <div className="flex items-center justify-between pb-4 border-b border-gray-100 mb-5">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-[#2A9D8F]/10 text-[#2A9D8F] flex items-center justify-center">
+                <div className="w-10 h-10 rounded-2xl bg-[#005B4F]/10 text-[#005B4F] flex items-center justify-center">
                   <UserPlus className="w-5 h-5" />
                 </div>
                 <div>
@@ -273,7 +308,7 @@ export default function FamilyMembers() {
               </div>
               <button
                 onClick={() => setShowForm(false)}
-                className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -297,7 +332,7 @@ export default function FamilyMembers() {
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                   required
-                  className="w-full h-11 px-4 border border-[#E5E7EB] rounded-xl text-sm font-medium outline-none focus:border-[#2A9D8F] focus:ring-2 focus:ring-[#2A9D8F]/10 transition-all"
+                  className="w-full h-11 px-4 border border-[#E5E7EB] rounded-xl text-sm font-medium outline-none focus:border-[#005B4F] focus:ring-2 focus:ring-[#005B4F]/10 transition-all"
                 />
               </div>
 
@@ -307,7 +342,7 @@ export default function FamilyMembers() {
                   <select
                     value={form.relationship}
                     onChange={(e) => setForm({ ...form, relationship: e.target.value })}
-                    className="w-full h-11 px-3 border border-[#E5E7EB] rounded-xl text-sm font-medium outline-none focus:border-[#2A9D8F] bg-white"
+                    className="w-full h-11 px-3 border border-[#E5E7EB] rounded-xl text-sm font-medium outline-none focus:border-[#005B4F] bg-white cursor-pointer"
                   >
                     {RELATIONSHIPS.map((r) => (
                       <option key={r} value={r}>
@@ -321,7 +356,7 @@ export default function FamilyMembers() {
                   <select
                     value={form.role}
                     onChange={(e) => setForm({ ...form, role: e.target.value })}
-                    className="w-full h-11 px-3 border border-[#E5E7EB] rounded-xl text-sm font-medium outline-none focus:border-[#2A9D8F] bg-white"
+                    className="w-full h-11 px-3 border border-[#E5E7EB] rounded-xl text-sm font-medium outline-none focus:border-[#005B4F] bg-white cursor-pointer"
                   >
                     {ROLES.map((r) => (
                       <option key={r} value={r}>
@@ -341,7 +376,7 @@ export default function FamilyMembers() {
                   placeholder="e.g. member@email.com"
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  className="w-full h-11 px-4 border border-[#E5E7EB] rounded-xl text-sm font-medium outline-none focus:border-[#2A9D8F] focus:ring-2 focus:ring-[#2A9D8F]/10 transition-all"
+                  className="w-full h-11 px-4 border border-[#E5E7EB] rounded-xl text-sm font-medium outline-none focus:border-[#005B4F] focus:ring-2 focus:ring-[#005B4F]/10 transition-all"
                 />
               </div>
 
@@ -355,7 +390,7 @@ export default function FamilyMembers() {
                   min="0"
                   value={form.spendingLimit}
                   onChange={(e) => setForm({ ...form, spendingLimit: e.target.value })}
-                  className="w-full h-11 px-4 border border-[#E5E7EB] rounded-xl text-sm font-medium outline-none focus:border-[#2A9D8F] focus:ring-2 focus:ring-[#2A9D8F]/10 transition-all"
+                  className="w-full h-11 px-4 border border-[#E5E7EB] rounded-xl text-sm font-medium outline-none focus:border-[#005B4F] focus:ring-2 focus:ring-[#005B4F]/10 transition-all"
                 />
               </div>
 
@@ -363,14 +398,14 @@ export default function FamilyMembers() {
                 <button
                   type="button"
                   onClick={() => setShowForm(false)}
-                  className="flex-1 py-3 border border-gray-300 text-xs font-bold text-gray-700 rounded-xl hover:bg-gray-50 transition-colors"
+                  className="flex-1 py-3 border border-gray-300 text-xs font-bold text-gray-700 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="flex-1 py-3 bg-[#2A9D8F] text-white text-xs font-bold rounded-xl hover:bg-[#21867A] transition-all shadow-md shadow-[#2A9D8F]/20 disabled:opacity-50"
+                  className="flex-1 py-3 bg-[#005B4F] text-white text-xs font-bold rounded-xl hover:bg-[#004A40] transition-all shadow-md shadow-[#005B4F]/20 disabled:opacity-50 cursor-pointer"
                 >
                   {submitting ? "Saving..." : editItem ? "Update Member" : "Add Member"}
                 </button>
@@ -379,6 +414,17 @@ export default function FamilyMembers() {
           </div>
         </div>
       )}
+
+      {/* In-App Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={Boolean(deleteMemberId)}
+        onClose={() => setDeleteMemberId(null)}
+        onConfirm={confirmDelete}
+        title="Delete Member"
+        message="Are you sure you want to remove this family member? All assigned budgets and permissions will be removed."
+        confirmText="Delete"
+        isDanger={true}
+      />
     </div>
   );
 }

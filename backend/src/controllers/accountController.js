@@ -1,5 +1,7 @@
 const Account = require("../models/Account");
 
+const IFSC_REGEX = /^[A-Z]{4}0[A-Z0-9]{6}$/;
+
 const getAccounts = async (req, res) => {
   try {
     const { workspace } = req.query;
@@ -31,12 +33,24 @@ const createAccount = async (req, res) => {
     const accountName = name || nickname || (bankName ? `${bankName} (${type || "Account"})` : "Bank Account");
     const accountBalance = balance !== undefined && balance !== "" ? Number(balance) : (Number(openingBalance) || 0);
 
+    const cleanIfsc = (ifscCode || "").trim().toUpperCase();
+    if (!cleanIfsc) {
+      return res.status(400).json({ message: "IFSC Code is required (11 characters)" });
+    }
+    if (cleanIfsc.length !== 11 || !IFSC_REGEX.test(cleanIfsc)) {
+      return res.status(400).json({ message: "Invalid IFSC Code. Must be exactly 11 characters (e.g. SBIN0001234)" });
+    }
+
+    if (accountNumber && !/^\d{8,16}$/.test(accountNumber.trim())) {
+      return res.status(400).json({ message: "Account number must be between 8 and 16 digits" });
+    }
+
     const account = await Account.create({
       userId: req.user.id,
       bankName: bankName || "",
       accountHolderName: accountHolderName || "",
-      accountNumber: accountNumber || "",
-      ifscCode: ifscCode ? ifscCode.toUpperCase() : "",
+      accountNumber: accountNumber ? accountNumber.trim() : "",
+      ifscCode: cleanIfsc,
       branchName: branchName || "",
       nickname: nickname || "",
       name: accountName,
@@ -54,6 +68,21 @@ const createAccount = async (req, res) => {
 
 const updateAccount = async (req, res) => {
   try {
+    if (req.body.ifscCode !== undefined) {
+      const cleanIfsc = (req.body.ifscCode || "").trim().toUpperCase();
+      if (!cleanIfsc) {
+        return res.status(400).json({ message: "IFSC Code is required (11 characters)" });
+      }
+      if (cleanIfsc.length !== 11 || !IFSC_REGEX.test(cleanIfsc)) {
+        return res.status(400).json({ message: "Invalid IFSC Code. Must be exactly 11 characters (e.g. SBIN0001234)" });
+      }
+      req.body.ifscCode = cleanIfsc;
+    }
+
+    if (req.body.accountNumber && !/^\d{8,16}$/.test(req.body.accountNumber.trim())) {
+      return res.status(400).json({ message: "Account number must be between 8 and 16 digits" });
+    }
+
     const account = await Account.findOneAndUpdate(
       { _id: req.params.id, userId: req.user.id },
       req.body,

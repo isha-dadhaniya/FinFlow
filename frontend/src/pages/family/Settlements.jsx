@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Plus, Scale, Check, Trash2, X, ArrowRight } from "lucide-react";
+import ConfirmModal from "../../components/common/ConfirmModal";
 
 const formatCurrency = (amount) =>
   new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(amount || 0);
@@ -8,6 +9,7 @@ export default function Settlements() {
   const [settlements, setSettlements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [deleteSettlementId, setDeleteSettlementId] = useState(null);
   const [form, setForm] = useState({ fromMember: "", toMember: "", amount: "" });
 
   useEffect(() => { loadData(); }, []);
@@ -40,10 +42,11 @@ export default function Settlements() {
     loadData();
   };
 
-  const handleDelete = async (id) => {
-    if (!confirm("Delete?")) return;
+  const confirmDelete = async () => {
+    if (!deleteSettlementId) return;
     const token = localStorage.getItem("token");
-    await fetch(`http://localhost:5000/api/workspace/settlements/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
+    await fetch(`http://localhost:5000/api/workspace/settlements/${deleteSettlementId}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
+    setDeleteSettlementId(null);
     loadData();
   };
 
@@ -55,7 +58,7 @@ export default function Settlements() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div><h1 className="text-2xl font-bold text-[#1F2937]">Settlements</h1><p className="text-sm text-[#6B7280] mt-0.5">Track who owes whom</p></div>
         <button onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 px-4 py-2.5 bg-[#2A9D8F] text-white text-sm font-semibold rounded-xl hover:bg-[#21867A] transition-colors shadow-lg shadow-[#2A9D8F]/20">
+          className="flex items-center gap-2 px-4 py-2.5 bg-[#005B4F] text-white text-sm font-semibold rounded-xl hover:bg-[#004A40] transition-colors shadow-lg shadow-[#005B4F]/20 cursor-pointer">
           <Plus className="w-4 h-4" /> Add Settlement
         </button>
       </div>
@@ -78,10 +81,10 @@ export default function Settlements() {
                 <div className="flex items-center gap-3">
                   <p className="text-sm font-bold text-amber-600">{formatCurrency(s.amount)}</p>
                   <button onClick={() => markSettled(s._id)}
-                    className="px-2.5 py-1 text-[10px] font-bold bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 flex items-center gap-1">
+                    className="px-2.5 py-1 text-[10px] font-bold bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 flex items-center gap-1 cursor-pointer">
                     <Check className="w-3 h-3" /> Mark Settled
                   </button>
-                  <button onClick={() => handleDelete(s._id)} className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
+                  <button onClick={() => setDeleteSettlementId(s._id)} className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 cursor-pointer"><Trash2 className="w-3.5 h-3.5" /></button>
                 </div>
               </div>
             ))}
@@ -114,20 +117,31 @@ export default function Settlements() {
           <div className="bg-white rounded-2xl shadow-2xl border w-full max-w-lg p-6" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-lg font-bold text-[#1F2937]">Add Settlement</h2>
-              <button onClick={() => setShowForm(false)} className="p-1.5 rounded-lg hover:bg-gray-100"><X className="w-4 h-4" /></button>
+              <button onClick={() => setShowForm(false)} className="p-1.5 rounded-lg hover:bg-gray-100 cursor-pointer"><X className="w-4 h-4" /></button>
             </div>
             <form onSubmit={handleSubmit} className="space-y-4">
               <input type="text" placeholder="Who owes (e.g. Son)" value={form.fromMember} onChange={(e) => setForm({ ...form, fromMember: e.target.value })} required
-                className="w-full h-11 px-4 border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#2A9D8F]" />
+                className="w-full h-11 px-4 border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#005B4F]" />
               <input type="text" placeholder="Owes to (e.g. Father)" value={form.toMember} onChange={(e) => setForm({ ...form, toMember: e.target.value })} required
-                className="w-full h-11 px-4 border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#2A9D8F]" />
+                className="w-full h-11 px-4 border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#005B4F]" />
               <input type="number" placeholder="Amount" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} required min="0"
-                className="w-full h-11 px-4 border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#2A9D8F]" />
-              <button type="submit" className="w-full h-12 bg-[#2A9D8F] text-white text-sm font-semibold rounded-xl hover:bg-[#21867A]">Add Settlement</button>
+                className="w-full h-11 px-4 border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#005B4F]" />
+              <button type="submit" className="w-full h-12 bg-[#005B4F] text-white text-sm font-semibold rounded-xl hover:bg-[#004A40] transition-colors shadow-lg shadow-[#005B4F]/20 cursor-pointer">Add Settlement</button>
             </form>
           </div>
         </div>
       )}
+
+      {/* In-App Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={Boolean(deleteSettlementId)}
+        onClose={() => setDeleteSettlementId(null)}
+        onConfirm={confirmDelete}
+        title="Delete Settlement"
+        message="Are you sure you want to delete this settlement record?"
+        confirmText="Delete"
+        isDanger={true}
+      />
     </div>
   );
 }

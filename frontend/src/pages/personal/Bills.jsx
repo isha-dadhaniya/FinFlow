@@ -29,6 +29,7 @@ import {
   RefreshCw,
   ChevronRight,
 } from "lucide-react";
+import ConfirmModal from "../../components/common/ConfirmModal";
 
 const API = "http://localhost:5000/api";
 const getToken = () => localStorage.getItem("token");
@@ -127,6 +128,7 @@ export default function Bills() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState(null);
+  const [deleteBillId, setDeleteBillId] = useState(null);
   const [filter, setFilter] = useState("all");
 
   // GPay/Paytm BBPS state
@@ -289,10 +291,11 @@ export default function Bills() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Delete this bill?")) return;
+  const confirmDelete = async () => {
+    if (!deleteBillId) return;
     try {
-      await fetch(`${API}/bills/${id}`, { method: "DELETE", headers: headers() });
+      await fetch(`${API}/bills/${deleteBillId}`, { method: "DELETE", headers: headers() });
+      setDeleteBillId(null);
       loadData();
     } catch (err) {
       console.error("Delete error:", err);
@@ -399,13 +402,13 @@ export default function Bills() {
                     )}
                     <button
                       onClick={() => openEditModal(bill)}
-                      className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-[#005B4F]"
+                      className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-[#005B4F] cursor-pointer"
                     >
                       <Edit2 className="w-3.5 h-3.5" />
                     </button>
                     <button
-                      onClick={() => handleDelete(bill._id)}
-                      className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500"
+                      onClick={() => setDeleteBillId(bill._id)}
+                      className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 cursor-pointer"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -770,6 +773,17 @@ export default function Bills() {
           </div>
         </div>
       )}
+
+      {/* In-App Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={Boolean(deleteBillId)}
+        onClose={() => setDeleteBillId(null)}
+        onConfirm={confirmDelete}
+        title="Delete Bill"
+        message="Are you sure you want to delete this bill?"
+        confirmText="Delete"
+        isDanger={true}
+      />
     </div>
   );
 }

@@ -88,14 +88,14 @@ export default function MemberContributions() {
             });
             setShowForm(true);
           }}
-          className="flex items-center gap-2 px-4 py-2.5 bg-[#2A9D8F] text-white text-sm font-semibold rounded-xl hover:bg-[#21867A] transition-colors shadow-lg shadow-[#2A9D8F]/20"
+          className="flex items-center gap-2 px-4 py-2.5 bg-[#005B4F] text-white text-sm font-semibold rounded-xl hover:bg-[#004A40] transition-colors shadow-lg shadow-[#005B4F]/20 cursor-pointer"
         >
           <Plus className="w-4 h-4" /> Add Contribution
         </button>
       </div>
 
       {/* Pool Total Banner */}
-      <div className="bg-gradient-to-r from-[#2A9D8F] to-[#21867A] rounded-2xl p-6 text-white shadow-sm flex items-center justify-between flex-wrap gap-4">
+      <div className="bg-gradient-to-r from-[#005B4F] to-[#008573] rounded-2xl p-6 text-white shadow-sm flex items-center justify-between flex-wrap gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wider text-white/80">Total Shared Pool Gathered</p>
           <p className="text-3xl font-extrabold mt-1">{formatCurrency(totalPool)}</p>
@@ -121,7 +121,7 @@ export default function MemberContributions() {
             {contributions.map((c) => (
               <div key={c._id} className="flex items-center justify-between px-6 py-4 hover:bg-[#F9FAFB]">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-[#2A9D8F] text-white flex items-center justify-center font-bold text-sm">
+                  <div className="w-10 h-10 rounded-full bg-[#005B4F] text-white flex items-center justify-center font-bold text-sm">
                     {c.memberName ? c.memberName[0].toUpperCase() : "M"}
                   </div>
                   <div>
@@ -149,7 +149,7 @@ export default function MemberContributions() {
           <div className="bg-white rounded-2xl shadow-2xl border border-[#E5E7EB] w-full max-w-lg p-6" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-lg font-bold text-[#1F2937]">Record Family Contribution</h2>
-              <button onClick={() => setShowForm(false)} className="p-1.5 rounded-lg hover:bg-gray-100">
+              <button onClick={() => setShowForm(false)} className="p-1.5 rounded-lg hover:bg-gray-100 cursor-pointer">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -160,7 +160,7 @@ export default function MemberContributions() {
                   <select
                     value={form.memberName}
                     onChange={(e) => setForm({ ...form, memberName: e.target.value })}
-                    className="w-full h-11 px-3 border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#2A9D8F]"
+                    className="w-full h-11 px-3 border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#005B4F] bg-white cursor-pointer"
                   >
                     {members.map((m) => (
                       <option key={m._id} value={m.name}>{m.name} ({m.relationship || m.role})</option>
@@ -173,7 +173,7 @@ export default function MemberContributions() {
                     value={form.memberName}
                     onChange={(e) => setForm({ ...form, memberName: e.target.value })}
                     required
-                    className="w-full h-11 px-4 border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#2A9D8F]"
+                    className="w-full h-11 px-4 border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#005B4F]"
                   />
                 )}
               </div>
@@ -186,7 +186,7 @@ export default function MemberContributions() {
                   onChange={(e) => setForm({ ...form, amount: e.target.value })}
                   required
                   min="1"
-                  className="w-full h-11 px-4 border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#2A9D8F]"
+                  className="w-full h-11 px-4 border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#005B4F]"
                 />
               </div>
               <div>
@@ -196,12 +196,12 @@ export default function MemberContributions() {
                   value={form.date}
                   onChange={(e) => setForm({ ...form, date: e.target.value })}
                   required
-                  className="w-full h-11 px-4 border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#2A9D8F]"
+                  className="w-full h-11 px-4 border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#005B4F]"
                 />
               </div>
               <button
                 type="submit"
-                className="w-full h-12 bg-[#2A9D8F] text-white text-sm font-semibold rounded-xl hover:bg-[#21867A] transition-colors"
+                className="w-full h-12 bg-[#005B4F] text-white text-sm font-semibold rounded-xl hover:bg-[#004A40] transition-colors shadow-lg shadow-[#005B4F]/20 cursor-pointer"
               >
                 Log Contribution
               </button>

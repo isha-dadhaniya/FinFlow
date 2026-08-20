@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Plus, Edit2, Trash2, Landmark, CreditCard, Wallet, X, Building2, Check, Users } from "lucide-react";
+import ConfirmModal from "../../components/common/ConfirmModal";
 
 const API = "http://localhost:5000/api";
 const getToken = () => localStorage.getItem("token");
@@ -30,11 +31,32 @@ const ACCOUNT_TYPES = [
   "UPI Joint",
 ];
 
+const IFSC_REGEX = /^[A-Z]{4}0[A-Z0-9]{6}$/;
+
+const validateIfsc = (value) => {
+  if (!value || !value.trim()) return "IFSC Code is required (11 characters)";
+  const upper = value.trim().toUpperCase();
+  if (upper.length !== 11) return "IFSC Code must be exactly 11 characters";
+  if (!IFSC_REGEX.test(upper)) return "Invalid IFSC format (e.g. SBIN0001234)";
+  return "";
+};
+
+const validateAccountNumber = (value) => {
+  if (!value) return "";
+  if (!/^\d+$/.test(value)) return "Account number must contain digits only";
+  if (value.length < 8) return "Account number must be at least 8 digits";
+  if (value.length > 16) return "Account number must not exceed 16 digits";
+  return "";
+};
+
 export default function FamilyAccounts() {
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editItem, setEditItem] = useState(null);
+  const [deleteAccountId, setDeleteAccountId] = useState(null);
+  const [errors, setErrors] = useState({});
+  const [touched, setTouched] = useState({});
 
   const [form, setForm] = useState({
     bankName: "HDFC Bank",
@@ -79,6 +101,8 @@ export default function FamilyAccounts() {
       nickname: "Family Savings Pool",
       openingBalance: "100000",
     });
+    setErrors({});
+    setTouched({});
     setShowModal(true);
   };
 
@@ -96,27 +120,44 @@ export default function FamilyAccounts() {
       nickname: acc.nickname || acc.name || "",
       openingBalance: String(acc.balance !== undefined ? acc.balance : acc.openingBalance || ""),
     });
+    setErrors({});
+    setTouched({});
     setShowModal(true);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Run all validations before submission
+    const newErrors = {};
+    const ifscErr = validateIfsc(form.ifscCode);
+    if (ifscErr) newErrors.ifscCode = ifscErr;
+
+    if (form.accountNumber) {
+      const accErr = validateAccountNumber(form.accountNumber);
+      if (accErr) newErrors.accountNumber = accErr;
+    }
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      setTouched({ ifscCode: true, accountNumber: true });
+      return;
+    }
+
     try {
-      const finalBankName = form.bankName === "Other / Custom Bank" ? form.customBankName.trim() || "Custom Bank" : form.bankName;
-      const accountName = form.nickname.trim() || `${finalBankName} (${form.type})`;
-      const numBalance = Number(form.openingBalance) || 0;
+      const finalBankName = form.bankName === "Other / Custom Bank" ? form.customBankName.trim() : form.bankName;
+      const displayName = form.nickname.trim() || `${finalBankName} (${form.type})`;
 
       const payload = {
+        name: displayName,
         bankName: finalBankName,
         accountHolderName: form.accountHolderName.trim(),
+        type: form.type,
         accountNumber: form.accountNumber.trim(),
         ifscCode: form.ifscCode.trim().toUpperCase(),
         branchName: form.branchName.trim(),
         nickname: form.nickname.trim(),
-        name: accountName,
-        type: form.type,
-        balance: numBalance,
-        openingBalance: numBalance,
+        balance: Number(form.openingBalance) || 0,
+        currency: "INR",
         workspace: "family",
       };
 
@@ -128,7 +169,8 @@ export default function FamilyAccounts() {
       });
 
       if (!res.ok) {
-        alert("Failed to save joint account.");
+        const errorData = await res.json().catch(() => ({}));
+        alert(errorData.message || "Failed to save joint account.");
         return;
       }
 
@@ -140,10 +182,11 @@ export default function FamilyAccounts() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Delete this joint family account?")) return;
+  const confirmDelete = async () => {
+    if (!deleteAccountId) return;
     try {
-      await fetch(`${API}/accounts/${id}`, { method: "DELETE", headers: headers() });
+      await fetch(`${API}/accounts/${deleteAccountId}`, { method: "DELETE", headers: headers() });
+      setDeleteAccountId(null);
       loadAccounts();
     } catch (err) {
       console.error("Delete family account error:", err);
@@ -168,14 +211,14 @@ export default function FamilyAccounts() {
         </div>
         <button
           onClick={handleOpenAddModal}
-          className="flex items-center gap-2 px-4 py-2.5 bg-[#2A9D8F] text-white text-sm font-semibold rounded-xl hover:bg-[#21867A] transition-colors shadow-lg shadow-[#2A9D8F]/20"
+          className="flex items-center gap-2 px-4 py-2.5 bg-[#005B4F] text-white text-sm font-semibold rounded-xl hover:bg-[#004A40] transition-colors shadow-lg shadow-[#005B4F]/20 cursor-pointer"
         >
           <Plus className="w-4 h-4" /> Add Joint Account
         </button>
       </div>
 
-      {/* Hero Banner */}
-      <div className="bg-gradient-to-r from-[#2A9D8F] to-[#21867A] rounded-2xl p-6 sm:p-7 text-white shadow-sm flex items-center justify-between flex-wrap gap-4">
+      {/* Hero Banner (Matches Personal Net Balance Banner) */}
+      <div className="bg-gradient-to-r from-[#005B4F] to-[#008573] rounded-2xl p-6 sm:p-7 text-white shadow-sm flex items-center justify-between flex-wrap gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wider text-white/80">Total Family Reserves</p>
           <p className="text-3xl sm:text-4xl font-extrabold mt-1 tracking-tight">{formatCurrency(totalBalance)}</p>
@@ -199,7 +242,7 @@ export default function FamilyAccounts() {
             </p>
             <button
               onClick={handleOpenAddModal}
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#2A9D8F] text-white text-xs font-bold rounded-xl hover:bg-[#21867A] transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#005B4F] text-white text-xs font-bold rounded-xl hover:bg-[#004A40] transition-colors cursor-pointer"
             >
               <Plus className="w-4 h-4" /> Add Joint Account
             </button>
@@ -213,11 +256,11 @@ export default function FamilyAccounts() {
               <div>
                 <div className="flex items-start justify-between gap-2 mb-3">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-10 h-10 rounded-xl bg-[#2A9D8F]/10 text-[#2A9D8F] flex items-center justify-center font-bold">
+                    <div className="w-10 h-10 rounded-xl bg-[#005B4F]/10 text-[#005B4F] flex items-center justify-center font-bold">
                       <Landmark className="w-5 h-5" />
                     </div>
                     <div>
-                      <p className="text-xs font-bold text-[#2A9D8F] uppercase tracking-wider">
+                      <p className="text-xs font-bold text-[#005B4F] uppercase tracking-wider">
                         {acc.bankName || "Joint Bank"}
                       </p>
                       <h3 className="text-sm font-extrabold text-[#1F2937] leading-tight">
@@ -227,18 +270,20 @@ export default function FamilyAccounts() {
                   </div>
 
                   <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => handleOpenEditModal(acc)}
-                      className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-[#2A9D8F]"
-                    >
-                      <Edit2 className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(acc._id)}
-                      className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                      <button
+                        onClick={() => handleOpenEditModal(acc)}
+                        className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-[#005B4F] transition-colors cursor-pointer"
+                        title="Edit Account"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => setDeleteAccountId(acc._id)}
+                        className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors cursor-pointer"
+                        title="Delete Account"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                   </div>
                 </div>
 
@@ -266,7 +311,7 @@ export default function FamilyAccounts() {
 
               <div className="pt-2 border-t border-gray-100 flex items-end justify-between">
                 <div>
-                  <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-[#2A9D8F]/10 text-[#2A9D8F]">
+                  <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-[#005B4F]/10 text-[#005B4F]">
                     {acc.type || "Joint Savings"}
                   </span>
                   <p className="text-[10px] text-[#9CA3AF] mt-1">Pool Balance</p>
@@ -297,7 +342,7 @@ export default function FamilyAccounts() {
                 </h2>
                 <p className="text-xs text-[#6B7280] mt-0.5">Enter family bank credentials and initial pool balance</p>
               </div>
-              <button onClick={() => setShowModal(false)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400">
+              <button onClick={() => setShowModal(false)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -309,7 +354,7 @@ export default function FamilyAccounts() {
                   value={form.bankName}
                   onChange={(e) => setForm({ ...form, bankName: e.target.value })}
                   required
-                  className="w-full h-11 px-3.5 border border-[#D1D5DB] rounded-xl text-sm outline-none focus:border-[#2A9D8F] bg-white"
+                  className="w-full h-11 px-3.5 border border-[#D1D5DB] rounded-xl text-sm outline-none focus:border-[#005B4F] bg-white cursor-pointer"
                 >
                   <option value="" disabled>Select Bank</option>
                   {POPULAR_BANKS.map((b) => (
@@ -323,7 +368,7 @@ export default function FamilyAccounts() {
                     value={form.customBankName}
                     onChange={(e) => setForm({ ...form, customBankName: e.target.value })}
                     required
-                    className="w-full h-11 px-3.5 border border-[#D1D5DB] rounded-xl text-sm outline-none focus:border-[#2A9D8F] mt-2"
+                    className="w-full h-11 px-3.5 border border-[#D1D5DB] rounded-xl text-sm outline-none focus:border-[#005B4F] mt-2"
                   />
                 )}
               </div>
@@ -336,7 +381,7 @@ export default function FamilyAccounts() {
                   value={form.accountHolderName}
                   onChange={(e) => setForm({ ...form, accountHolderName: e.target.value })}
                   required
-                  className="w-full h-11 px-3.5 border border-[#D1D5DB] rounded-xl text-sm outline-none focus:border-[#2A9D8F]"
+                  className="w-full h-11 px-3.5 border border-[#D1D5DB] rounded-xl text-sm outline-none focus:border-[#005B4F]"
                 />
               </div>
 
@@ -346,7 +391,7 @@ export default function FamilyAccounts() {
                   <select
                     value={form.type}
                     onChange={(e) => setForm({ ...form, type: e.target.value })}
-                    className="w-full h-11 px-3 border border-[#D1D5DB] rounded-xl text-sm outline-none focus:border-[#2A9D8F] bg-white"
+                    className="w-full h-11 px-3 border border-[#D1D5DB] rounded-xl text-sm outline-none focus:border-[#005B4F] bg-white cursor-pointer"
                   >
                     {ACCOUNT_TYPES.map((t) => (
                       <option key={t} value={t}>{t}</option>
@@ -358,24 +403,76 @@ export default function FamilyAccounts() {
                   <input
                     type="text"
                     placeholder="********1234"
+                    inputMode="numeric"
+                    maxLength={16}
                     value={form.accountNumber}
-                    onChange={(e) => setForm({ ...form, accountNumber: e.target.value })}
+                    onChange={(e) => {
+                      const digitsOnly = e.target.value.replace(/\D/g, "").slice(0, 16);
+                      setForm({ ...form, accountNumber: digitsOnly });
+                      setTouched({ ...touched, accountNumber: true });
+                      setErrors({ ...errors, accountNumber: validateAccountNumber(digitsOnly) });
+                    }}
+                    onBlur={() => {
+                      setTouched({ ...touched, accountNumber: true });
+                      setErrors({ ...errors, accountNumber: validateAccountNumber(form.accountNumber) });
+                    }}
+                    onPaste={(e) => {
+                      e.preventDefault();
+                      const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 16);
+                      setForm({ ...form, accountNumber: pasted });
+                      setTouched({ ...touched, accountNumber: true });
+                      setErrors({ ...errors, accountNumber: validateAccountNumber(pasted) });
+                    }}
                     required
-                    className="w-full h-11 px-3.5 border border-[#D1D5DB] rounded-xl text-sm font-mono outline-none focus:border-[#2A9D8F]"
+                    className={`w-full h-11 px-3.5 border rounded-xl text-sm font-mono outline-none focus:border-[#005B4F] ${
+                      touched.accountNumber && errors.accountNumber
+                        ? "border-red-400 focus:border-red-500"
+                        : "border-[#D1D5DB] focus:border-[#005B4F]"
+                    }`}
                   />
+                  {touched.accountNumber && errors.accountNumber && (
+                    <p className="text-[11px] text-red-500 mt-1 font-medium">{errors.accountNumber}</p>
+                  )}
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div>
-                  <label className="block text-xs font-bold text-[#374151] uppercase tracking-wider mb-1.5">IFSC Code</label>
+                  <label className="block text-xs font-bold text-[#374151] uppercase tracking-wider mb-1.5">
+                    IFSC Code <span className="text-red-500">*</span>
+                  </label>
                   <input
                     type="text"
                     placeholder="SBIN0001234"
+                    maxLength={11}
                     value={form.ifscCode}
-                    onChange={(e) => setForm({ ...form, ifscCode: e.target.value.toUpperCase() })}
-                    className="w-full h-11 px-3.5 border border-[#D1D5DB] rounded-xl text-sm font-mono uppercase outline-none focus:border-[#2A9D8F]"
+                    onChange={(e) => {
+                      const upper = e.target.value.toUpperCase().slice(0, 11);
+                      setForm({ ...form, ifscCode: upper });
+                      setTouched({ ...touched, ifscCode: true });
+                      setErrors({ ...errors, ifscCode: validateIfsc(upper) });
+                    }}
+                    onBlur={() => {
+                      setTouched({ ...touched, ifscCode: true });
+                      setErrors({ ...errors, ifscCode: validateIfsc(form.ifscCode) });
+                    }}
+                    onPaste={(e) => {
+                      e.preventDefault();
+                      const pasted = e.clipboardData.getData("text").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 11);
+                      setForm({ ...form, ifscCode: pasted });
+                      setTouched({ ...touched, ifscCode: true });
+                      setErrors({ ...errors, ifscCode: validateIfsc(pasted) });
+                    }}
+                    required
+                    className={`w-full h-11 px-3.5 border rounded-xl text-sm font-mono uppercase outline-none focus:border-[#005B4F] ${
+                      touched.ifscCode && errors.ifscCode
+                        ? "border-red-400 focus:border-red-500"
+                        : "border-[#D1D5DB] focus:border-[#005B4F]"
+                    }`}
                   />
+                  {touched.ifscCode && errors.ifscCode && (
+                    <p className="text-[11px] text-red-500 mt-1 font-medium">{errors.ifscCode}</p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-[#374151] uppercase tracking-wider mb-1.5">Branch Name</label>
@@ -384,7 +481,7 @@ export default function FamilyAccounts() {
                     placeholder="Surat Main Branch"
                     value={form.branchName}
                     onChange={(e) => setForm({ ...form, branchName: e.target.value })}
-                    className="w-full h-11 px-3.5 border border-[#D1D5DB] rounded-xl text-sm outline-none focus:border-[#2A9D8F]"
+                    className="w-full h-11 px-3.5 border border-[#D1D5DB] rounded-xl text-sm outline-none focus:border-[#005B4F]"
                   />
                 </div>
               </div>
@@ -397,7 +494,7 @@ export default function FamilyAccounts() {
                     placeholder="Family Savings Pool"
                     value={form.nickname}
                     onChange={(e) => setForm({ ...form, nickname: e.target.value })}
-                    className="w-full h-11 px-3.5 border border-[#D1D5DB] rounded-xl text-sm outline-none focus:border-[#2A9D8F]"
+                    className="w-full h-11 px-3.5 border border-[#D1D5DB] rounded-xl text-sm outline-none focus:border-[#005B4F]"
                   />
                 </div>
                 <div>
@@ -409,7 +506,7 @@ export default function FamilyAccounts() {
                     onChange={(e) => setForm({ ...form, openingBalance: e.target.value })}
                     required
                     min="0"
-                    className="w-full h-11 px-3.5 border border-[#D1D5DB] rounded-xl text-sm font-bold text-[#1F2937] outline-none focus:border-[#2A9D8F]"
+                    className="w-full h-11 px-3.5 border border-[#D1D5DB] rounded-xl text-sm font-bold text-[#1F2937] outline-none focus:border-[#005B4F]"
                   />
                 </div>
               </div>
@@ -418,13 +515,13 @@ export default function FamilyAccounts() {
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="px-5 py-2.5 rounded-xl border border-gray-300 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                  className="px-5 py-2.5 rounded-xl border border-gray-300 text-sm font-semibold text-gray-700 hover:bg-gray-50 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2.5 rounded-xl bg-[#2A9D8F] text-white text-sm font-semibold hover:bg-[#21867A] transition-colors shadow-lg shadow-[#2A9D8F]/20"
+                  className="px-6 py-2.5 rounded-xl bg-[#005B4F] text-white text-sm font-semibold hover:bg-[#004A40] transition-colors shadow-lg shadow-[#005B4F]/20 cursor-pointer"
                 >
                   {editItem ? "Update Account" : "Add Account"}
                 </button>
@@ -433,6 +530,17 @@ export default function FamilyAccounts() {
           </div>
         </div>
       )}
+
+      {/* In-App Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={Boolean(deleteAccountId)}
+        onClose={() => setDeleteAccountId(null)}
+        onConfirm={confirmDelete}
+        title="Delete Family Account"
+        message="Are you sure you want to delete this joint family bank account? All scheduled pool EMIs linked to this account may need to be updated."
+        confirmText="Delete"
+        isDanger={true}
+      />
     </div>
   );
 }

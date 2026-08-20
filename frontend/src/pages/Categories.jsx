@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Plus, Trash2, Edit2, Tag, X, Check } from "lucide-react";
+import ConfirmModal from "../components/common/ConfirmModal";
 
 const API = "http://localhost:5000/api";
 const getToken = () => localStorage.getItem("token");
@@ -21,6 +22,7 @@ export default function Categories() {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [deleteCatId, setDeleteCatId] = useState(null);
   const [typeFilter, setTypeFilter] = useState("all");
   const [form, setForm] = useState({ name: "", type: "expense", icon: "🏷️", color: "#005B4F" });
 
@@ -62,10 +64,11 @@ export default function Categories() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Delete this category?")) return;
+  const confirmDelete = async () => {
+    if (!deleteCatId) return;
     try {
-      await fetch(`${API}/categories/${id}`, { method: "DELETE", headers: headers() });
+      await fetch(`${API}/categories/${deleteCatId}`, { method: "DELETE", headers: headers() });
+      setDeleteCatId(null);
       loadCategories();
     } catch (err) {
       console.error("Delete category error:", err);
@@ -123,7 +126,7 @@ export default function Categories() {
               </div>
             </div>
             {cat._id && (
-              <button onClick={() => handleDelete(cat._id)} className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg hover:bg-red-50">
+              <button onClick={() => setDeleteCatId(cat._id)} className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg hover:bg-red-50 cursor-pointer">
                 <Trash2 className="w-4 h-4" />
               </button>
             )}
@@ -177,6 +180,17 @@ export default function Categories() {
           </div>
         </div>
       )}
+
+      {/* In-App Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={Boolean(deleteCatId)}
+        onClose={() => setDeleteCatId(null)}
+        onConfirm={confirmDelete}
+        title="Delete Category"
+        message="Are you sure you want to delete this category? Any associated transactions will remain intact."
+        confirmText="Delete"
+        isDanger={true}
+      />
     </div>
   );
 }

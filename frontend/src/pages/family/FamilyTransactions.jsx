@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Plus, Search, Edit2, Trash2, ArrowLeftRight, X, Users, Calendar, Filter, ReceiptIndianRupee, ShieldCheck } from "lucide-react";
+import ConfirmModal from "../../components/common/ConfirmModal";
 
 const API = "http://localhost:5000/api";
 const getToken = () => localStorage.getItem("token");
@@ -17,6 +18,7 @@ export default function FamilyTransactions() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState(null);
+  const [deleteTxId, setDeleteTxId] = useState(null);
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
 
@@ -113,10 +115,11 @@ export default function FamilyTransactions() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Delete this family transaction?")) return;
+  const confirmDelete = async () => {
+    if (!deleteTxId) return;
     try {
-      await fetch(`${API}/transactions/${id}`, { method: "DELETE", headers: headers() });
+      await fetch(`${API}/transactions/${deleteTxId}`, { method: "DELETE", headers: headers() });
+      setDeleteTxId(null);
       loadData();
     } catch (err) {
       console.error("Delete family transaction error:", err);
@@ -170,14 +173,14 @@ export default function FamilyTransactions() {
             setEditItem(null);
             setShowForm(true);
           }}
-          className="flex items-center gap-2 px-4 py-2.5 bg-[#2A9D8F] text-white text-sm font-semibold rounded-xl hover:bg-[#21867A] transition-colors shadow-lg shadow-[#2A9D8F]/20"
+          className="flex items-center gap-2 px-4 py-2.5 bg-[#005B4F] text-white text-sm font-semibold rounded-xl hover:bg-[#004A40] transition-colors shadow-lg shadow-[#005B4F]/20 cursor-pointer"
         >
           <Plus className="w-4 h-4" /> Add Transaction
         </button>
       </div>
 
       {/* Summary Banner */}
-      <div className="bg-gradient-to-r from-[#2A9D8F] to-[#21867A] rounded-2xl p-6 text-white shadow-sm flex items-center justify-between flex-wrap gap-4">
+      <div className="bg-gradient-to-r from-[#005B4F] to-[#008573] rounded-2xl p-6 text-white shadow-sm flex items-center justify-between flex-wrap gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wider text-white/80">Total Family Spending</p>
           <p className="text-3xl font-extrabold mt-1">{formatCurrency(totalSpent)}</p>
@@ -197,13 +200,13 @@ export default function FamilyTransactions() {
             placeholder="Search family expenses..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full h-10 pl-10 pr-4 bg-white border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#2A9D8F] focus:ring-2 focus:ring-[#2A9D8F]/10"
+            className="w-full h-10 pl-10 pr-4 bg-white border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#005B4F] focus:ring-2 focus:ring-[#005B4F]/10"
           />
         </div>
         <select
           value={selectedCategory}
           onChange={(e) => setSelectedCategory(e.target.value)}
-          className="h-10 px-3 bg-white border border-[#E5E7EB] rounded-xl text-xs font-semibold text-[#1F2937] outline-none focus:border-[#2A9D8F]"
+          className="h-10 px-3 bg-white border border-[#E5E7EB] rounded-xl text-xs font-semibold text-[#1F2937] outline-none focus:border-[#005B4F] cursor-pointer"
         >
           <option value="all">All Categories</option>
           {CATEGORIES.map((c) => (
@@ -234,7 +237,7 @@ export default function FamilyTransactions() {
                   <div className="flex items-center gap-3.5">
                     <div
                       className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm ${
-                        isBillPay ? "bg-blue-50 text-blue-700 border border-blue-200" : "bg-[#2A9D8F]/10 text-[#2A9D8F]"
+                        isBillPay ? "bg-blue-50 text-blue-700 border border-blue-200" : "bg-[#005B4F]/10 text-[#005B4F]"
                       }`}
                     >
                       {isBillPay ? <ReceiptIndianRupee className="w-4 h-4" /> : tx.category ? tx.category[0] : "F"}
@@ -255,10 +258,10 @@ export default function FamilyTransactions() {
                   </div>
                   <div className="flex items-center gap-3">
                     <p className="text-sm font-bold text-rose-600">- {formatCurrency(tx.amount)}</p>
-                    <button onClick={() => startEdit(tx)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-[#2A9D8F]">
+                    <button onClick={() => startEdit(tx)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-[#005B4F] cursor-pointer">
                       <Edit2 className="w-3.5 h-3.5" />
                     </button>
-                    <button onClick={() => handleDelete(tx._id)} className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500">
+                    <button onClick={() => setDeleteTxId(tx._id)} className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 cursor-pointer">
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
@@ -275,7 +278,7 @@ export default function FamilyTransactions() {
           <div className="bg-white rounded-2xl shadow-2xl border border-[#E5E7EB] w-full max-w-lg p-6" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-lg font-bold text-[#1F2937]">{editItem ? "Edit" : "Add"} Family Transaction</h2>
-              <button onClick={() => setShowForm(false)} className="p-1.5 rounded-lg hover:bg-gray-100">
+              <button onClick={() => setShowForm(false)} className="p-1.5 rounded-lg hover:bg-gray-100 cursor-pointer">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -286,7 +289,7 @@ export default function FamilyTransactions() {
                 value={form.title}
                 onChange={(e) => setForm({ ...form, title: e.target.value })}
                 required
-                className="w-full h-11 px-4 border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#2A9D8F]"
+                className="w-full h-11 px-4 border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#005B4F]"
               />
               <input
                 type="number"
@@ -295,13 +298,13 @@ export default function FamilyTransactions() {
                 onChange={(e) => setForm({ ...form, amount: e.target.value })}
                 required
                 min="1"
-                className="w-full h-11 px-4 border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#2A9D8F]"
+                className="w-full h-11 px-4 border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#005B4F]"
               />
               <div className="grid grid-cols-2 gap-3">
                 <select
                   value={form.category}
                   onChange={(e) => setForm({ ...form, category: e.target.value })}
-                  className="h-11 px-3 border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#2A9D8F]"
+                  className="h-11 px-3 border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#005B4F] bg-white cursor-pointer"
                 >
                   {CATEGORIES.map((c) => (
                     <option key={c} value={c}>{c}</option>
@@ -310,7 +313,7 @@ export default function FamilyTransactions() {
                 <select
                   value={form.paymentMethod}
                   onChange={(e) => setForm({ ...form, paymentMethod: e.target.value })}
-                  className="h-11 px-3 border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#2A9D8F]"
+                  className="h-11 px-3 border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#005B4F] bg-white cursor-pointer"
                 >
                   {PAYMENT_METHODS.map((p) => (
                     <option key={p} value={p}>{p}</option>
@@ -322,14 +325,14 @@ export default function FamilyTransactions() {
                   type="date"
                   value={form.date}
                   onChange={(e) => setForm({ ...form, date: e.target.value })}
-                  className="h-11 px-4 border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#2A9D8F]"
+                  className="h-11 px-4 border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#005B4F]"
                 />
                 <input
                   type="text"
                   placeholder="Paid By (e.g. Mom / Dad)"
                   value={form.paidBy}
                   onChange={(e) => setForm({ ...form, paidBy: e.target.value })}
-                  className="h-11 px-4 border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#2A9D8F]"
+                  className="h-11 px-4 border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#005B4F]"
                 />
               </div>
               <textarea
@@ -337,11 +340,11 @@ export default function FamilyTransactions() {
                 value={form.notes}
                 onChange={(e) => setForm({ ...form, notes: e.target.value })}
                 rows={2}
-                className="w-full px-4 py-3 border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#2A9D8F] resize-none"
+                className="w-full px-4 py-3 border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#005B4F] resize-none"
               />
               <button
                 type="submit"
-                className="w-full h-12 bg-[#2A9D8F] text-white text-sm font-semibold rounded-xl hover:bg-[#21867A] transition-colors shadow-lg shadow-[#2A9D8F]/20"
+                className="w-full h-12 bg-[#005B4F] text-white text-sm font-semibold rounded-xl hover:bg-[#004A40] transition-colors shadow-lg shadow-[#005B4F]/20 cursor-pointer"
               >
                 {editItem ? "Update" : "Add"} Transaction
               </button>
@@ -349,6 +352,17 @@ export default function FamilyTransactions() {
           </div>
         </div>
       )}
+
+      {/* In-App Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={Boolean(deleteTxId)}
+        onClose={() => setDeleteTxId(null)}
+        onConfirm={confirmDelete}
+        title="Delete Family Transaction"
+        message="Are you sure you want to delete this shared family expense record?"
+        confirmText="Delete"
+        isDanger={true}
+      />
     </div>
   );
 }

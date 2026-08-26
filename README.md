@@ -1,2 +1,2 @@
 # FinFlow-
-finance based web application
+Multi-workspace finance based web application

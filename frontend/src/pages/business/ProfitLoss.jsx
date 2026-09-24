@@ -98,11 +98,11 @@ export default function ProfitLoss() {
         </div>
 
         <div className="bg-white rounded-2xl border border-[#E5E7EB] p-5">
-          <div className="w-10 h-10 rounded-xl bg-[#1E232A]/10 text-[#1E232A] flex items-center justify-center mb-3">
+          <div className="w-10 h-10 rounded-xl bg-[#005B4F]/10 text-[#005B4F] flex items-center justify-center mb-3">
             <PieChart className="w-5 h-5" />
           </div>
           <p className="text-xs font-semibold text-[#6B7280] uppercase tracking-wider">Profit Margin</p>
-          <p className="text-2xl font-extrabold text-[#1E232A] mt-1">{plData.profitMargin}%</p>
+          <p className="text-2xl font-extrabold text-[#005B4F] mt-1">{plData.profitMargin}%</p>
           <p className="text-[11px] text-[#9CA3AF] mt-1">Net Margin on Revenue</p>
         </div>
       </div>

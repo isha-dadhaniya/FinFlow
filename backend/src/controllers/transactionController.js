@@ -1,9 +1,11 @@
+const mongoose = require("mongoose");
 const Transaction = require("../models/Transaction");
 const Expense = require("../models/Expense");
 const Income = require("../models/Income");
 const SplitExpense = require("../models/SplitExpense");
 const Loan = require("../models/Loan");
 const Bill = require("../models/Bill");
+const Account = require("../models/Account");
 
 const getDateKey = (d) => {
   if (!d) return "nodate";
@@ -261,6 +263,32 @@ const createTransaction = async (req, res) => {
         module: transaction.module,
         notes: transaction.notes,
       });
+
+      // Deduct from bank account balance unless cash
+      const isCash = (paymentMethod || "").toLowerCase() === "cash" || (paymentMethod || "").toLowerCase() === "petty cash";
+      const numAmount = Number(amount) || 0;
+      if (!isCash && numAmount > 0) {
+        const orConds = [];
+        if (paymentMethod && paymentMethod.trim()) {
+          const pmClean = paymentMethod.trim();
+          orConds.push({ name: pmClean }, { nickname: pmClean }, { bankName: pmClean });
+        }
+        let acc = null;
+        if (orConds.length > 0) {
+          acc = await Account.findOneAndUpdate(
+            { userId: req.user.id, workspace: module || "personal", $or: orConds },
+            { $inc: { balance: -numAmount } },
+            { new: true }
+          );
+        }
+        if (!acc && (module === "business" || !module)) {
+          await Account.findOneAndUpdate(
+            { userId: req.user.id, workspace: module === "business" ? "business" : "personal" },
+            { $inc: { balance: -numAmount } },
+            { new: true, sort: { isDefault: -1, createdAt: 1 } }
+          );
+        }
+      }
     }
 
     // Also sync into Income model if it is an income
@@ -276,6 +304,31 @@ const createTransaction = async (req, res) => {
         workspace: transaction.module,
         notes: transaction.notes,
       });
+
+      // Add to bank account balance
+      const numAmount = Number(amount) || 0;
+      if (numAmount > 0) {
+        const orConds = [];
+        if (paymentMethod && paymentMethod.trim()) {
+          const pmClean = paymentMethod.trim();
+          orConds.push({ name: pmClean }, { nickname: pmClean }, { bankName: pmClean });
+        }
+        let acc = null;
+        if (orConds.length > 0) {
+          acc = await Account.findOneAndUpdate(
+            { userId: req.user.id, workspace: module || "personal", $or: orConds },
+            { $inc: { balance: numAmount } },
+            { new: true }
+          );
+        }
+        if (!acc && (module === "business" || !module)) {
+          await Account.findOneAndUpdate(
+            { userId: req.user.id, workspace: module === "business" ? "business" : "personal" },
+            { $inc: { balance: numAmount } },
+            { new: true, sort: { isDefault: -1, createdAt: 1 } }
+          );
+        }
+      }
     }
 
     res.status(201).json(transaction);
@@ -286,9 +339,17 @@ const createTransaction = async (req, res) => {
 
 const updateTransaction = async (req, res) => {
   try {
+    const id = req.params.id;
+    const userId = req.user.id;
     const { title, type, amount, category, date, paymentMethod, module, notes } = req.body;
+
+    const isValidObjectId = mongoose.Types.ObjectId.isValid(id) && String(new mongoose.Types.ObjectId(id)) === String(id);
+    if (!isValidObjectId) {
+      return res.status(400).json({ message: "Invalid transaction ID format" });
+    }
+
     const transaction = await Transaction.findOneAndUpdate(
-      { _id: req.params.id, userId: req.user.id },
+      { _id: id, userId },
       { title, type, amount: Number(amount) || 0, category, date, paymentMethod, module, notes },
       { new: true }
     );
@@ -301,13 +362,132 @@ const updateTransaction = async (req, res) => {
 
 const deleteTransaction = async (req, res) => {
   try {
-    const transaction = await Transaction.findOneAndDelete({
-      _id: req.params.id,
-      userId: req.user.id,
-    });
-    if (!transaction) return res.status(404).json({ message: "Transaction not found" });
-    res.status(200).json({ message: "Transaction deleted" });
+    const id = String(req.params.id || "").trim();
+    const userId = req.user?.id || req.user?._id;
+
+    // 1. Virtual or Prefixed Bill ID (e.g. "bill_65d8a9f...")
+    if (id.startsWith("bill_")) {
+      const billId = id.replace(/^bill_/, "");
+      if (mongoose.Types.ObjectId.isValid(billId)) {
+        const bill = await Bill.findById(billId);
+        const billName = bill?.name || "";
+        await Bill.findByIdAndDelete(billId);
+
+        if (billName) {
+          await Transaction.deleteMany({
+            $or: [
+              { title: { $regex: new RegExp(`Bill Payment - ${billName}`, "i") } },
+              { notes: { $regex: billName, $options: "i" } },
+            ],
+          });
+        }
+      }
+      return res.status(200).json({ message: "Bill payment record deleted" });
+    }
+
+    // 2. Virtual or Prefixed Loan EMI ID (e.g. "65d8..._emi_0" or "loan_65d8..._emi_0")
+    if (id.startsWith("loan_") || id.includes("_emi_")) {
+      const parts = id.replace(/^loan_/, "").split("_emi_");
+      const loanId = parts[0];
+      const emiIdx = parseInt(parts[1], 10);
+
+      if (mongoose.Types.ObjectId.isValid(loanId)) {
+        const loan = await Loan.findById(loanId);
+        if (loan && Array.isArray(loan.emiSchedule) && !isNaN(emiIdx) && loan.emiSchedule[emiIdx]) {
+          loan.emiSchedule[emiIdx].status = "pending";
+          loan.emiSchedule[emiIdx].paidDate = null;
+          loan.paidEmis = Math.max(0, (loan.paidEmis || 1) - 1);
+          await loan.save();
+
+          await Transaction.deleteMany({
+            title: { $regex: new RegExp(`EMI (Payment|Auto-Debit) - ${loan.name}`, "i") },
+          });
+        }
+      }
+      return res.status(200).json({ message: "Loan EMI payment record deleted" });
+    }
+
+    const isValidObjectId = mongoose.Types.ObjectId.isValid(id) && String(new mongoose.Types.ObjectId(id)) === String(id);
+
+    if (isValidObjectId) {
+      // 3. Primary Source: Native Transaction model
+      const tx = await Transaction.findById(id);
+      if (tx) {
+        const title = tx.title || "";
+        await Transaction.findByIdAndDelete(id);
+
+        // If it was an expense transaction, restore the deducted bank account balance
+        if (tx.type === "expense") {
+          const isCash = (tx.paymentMethod || "").toLowerCase() === "cash" || (tx.paymentMethod || "").toLowerCase() === "petty cash";
+          const numAmount = Number(tx.amount) || 0;
+          if (!isCash && numAmount > 0) {
+            const orConds = [];
+            if (tx.paymentMethod && tx.paymentMethod.trim()) {
+              const pmClean = tx.paymentMethod.trim();
+              orConds.push({ name: pmClean }, { nickname: pmClean }, { bankName: pmClean });
+            }
+            let acc = null;
+            if (orConds.length > 0) {
+              acc = await Account.findOneAndUpdate(
+                { userId: req.user.id, workspace: tx.module || "personal", $or: orConds },
+                { $inc: { balance: numAmount } },
+                { new: true }
+              );
+            }
+            if (!acc && tx.module === "business") {
+              await Account.findOneAndUpdate(
+                { userId: req.user.id, workspace: "business" },
+                { $inc: { balance: numAmount } },
+                { new: true, sort: { isDefault: -1, createdAt: 1 } }
+              );
+            }
+          }
+        }
+
+        // If it was a bill payment transaction, purge matching Bill records
+        if (/bill payment/i.test(title)) {
+          const cleanBillName = title.replace(/^bill payment\s*-\s*/i, "").trim();
+          await Bill.deleteMany({ name: { $regex: new RegExp(`^${cleanBillName}$`, "i") } });
+        }
+
+        // If it was a loan EMI payment transaction, revert loan EMI schedule
+        if (/emi (auto-debit|payment)/i.test(title)) {
+          const cleanLoanName = title
+            .replace(/emi\s+(auto-debit|payment)\s*-\s*/gi, "")
+            .replace(/\s*\(#\d+\)/gi, "")
+            .trim();
+          const loan = await Loan.findOne({ name: { $regex: new RegExp(`^${cleanLoanName}$`, "i") } });
+          if (loan && Array.isArray(loan.emiSchedule)) {
+            const instMatch = title.match(/#(\d+)/) || (tx.notes || "").match(/#(\d+)/);
+            const instIdx = instMatch ? parseInt(instMatch[1], 10) - 1 : -1;
+            if (instIdx >= 0 && loan.emiSchedule[instIdx]) {
+              loan.emiSchedule[instIdx].status = "pending";
+              loan.emiSchedule[instIdx].paidDate = null;
+              loan.paidEmis = Math.max(0, (loan.paidEmis || 1) - 1);
+              await loan.save();
+            }
+          }
+        }
+      }
+
+      // 4. Fallback cleanup across all related models by ID
+      await Expense.findByIdAndDelete(id);
+      await Income.findByIdAndDelete(id);
+      await SplitExpense.findByIdAndDelete(id);
+      await Bill.findByIdAndDelete(id);
+    } else {
+      // Non-ObjectId fallback by title matching
+      await Transaction.deleteMany({
+        $or: [{ title: id }, { title: { $regex: new RegExp(id, "i") } }],
+      });
+      await Bill.deleteMany({
+        $or: [{ name: id }, { name: { $regex: new RegExp(id, "i") } }],
+      });
+    }
+
+    res.status(200).json({ message: "Transaction deleted successfully" });
   } catch (error) {
+    console.error("deleteTransaction error:", error);
     res.status(500).json({ message: error.message });
   }
 };

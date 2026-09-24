@@ -36,7 +36,9 @@ export default function FamilyMembers() {
       let apiMembers = [];
       try {
         const res = await fetchFamilyMembers();
-        apiMembers = Array.isArray(res.data) ? res.data : [];
+        apiMembers = (Array.isArray(res.data) ? res.data : []).filter(
+          (m) => (m.email || "").toLowerCase() !== "varsha@gmail.com"
+        );
       } catch (err) {
         console.error("Error loading family members:", err);
         try {
@@ -45,7 +47,9 @@ export default function FamilyMembers() {
             headers: { Authorization: `Bearer ${token}` },
           });
           const data = await directRes.json();
-          apiMembers = Array.isArray(data) ? data : [];
+          apiMembers = (Array.isArray(data) ? data : []).filter(
+            (m) => (m.email || "").toLowerCase() !== "varsha@gmail.com"
+          );
         } catch {
           apiMembers = [];
         }
@@ -54,7 +58,9 @@ export default function FamilyMembers() {
       // Check workspace metadata for invited family members created in Settings
       try {
         const wsConfig = JSON.parse(localStorage.getItem("finflow_workspaces_config") || "{}");
-        const familyInvites = wsConfig?.family?.members || [];
+        const familyInvites = (wsConfig?.family?.members || []).filter(
+          (m) => (m.email || "").toLowerCase() !== "varsha@gmail.com"
+        );
         
         const existingEmails = new Set(apiMembers.map((m) => (m.email || "").toLowerCase()).filter(Boolean));
         const localMembers = [];

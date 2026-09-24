@@ -87,12 +87,22 @@ export default function PersonalTransactions() {
 
   const confirmDeleteTx = async () => {
     if (!deleteTxId) return;
+    const targetId = deleteTxId;
+    setDeleteTxId(null);
+
+    // Optimistic removal from UI immediately
+    setTransactions((prev) => prev.filter((t) => t._id !== targetId));
+
     try {
-      await fetch(`${API}/transactions/${deleteTxId}`, { method: "DELETE", headers: headers() });
-      setDeleteTxId(null);
-      loadData();
+      const res = await fetch(`${API}/transactions/${targetId}`, { method: "DELETE", headers: headers() });
+      if (!res.ok) {
+        console.warn("Delete endpoint response status:", res.status);
+      }
+      await loadData();
+      window.dispatchEvent(new Event("finflow_data_updated"));
     } catch (err) {
       console.error("Delete error:", err);
+      loadData();
     }
   };
 
@@ -152,10 +162,11 @@ export default function PersonalTransactions() {
         <div className="flex items-center gap-2">
           <button
             onClick={loadData}
-            className="flex items-center gap-2 px-3.5 py-2.5 bg-white border border-[#E5E7EB] rounded-xl text-xs font-bold text-gray-700 hover:bg-gray-50 transition-colors shadow-xs"
+            disabled={loading}
+            className="flex items-center gap-2 px-4 py-2.5 bg-[#005B4F] text-white text-sm font-semibold rounded-xl hover:bg-[#004A40] transition-colors shadow-lg shadow-[#005B4F]/20 cursor-pointer disabled:opacity-60"
             title="Refresh Transactions"
           >
-            <RefreshCw className={`w-4 h-4 text-gray-600 ${loading ? "animate-spin" : ""}`} />
+            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
             Refresh
           </button>
         </div>

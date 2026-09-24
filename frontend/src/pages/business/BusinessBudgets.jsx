@@ -83,23 +83,23 @@ export default function BusinessBudgets() {
             setForm({ name: "Sales", budget: "" });
             setShowModal(true);
           }}
-          className="flex items-center gap-2 px-4 py-2.5 bg-[#1E232A] text-white text-sm font-semibold rounded-xl hover:bg-[#15191E] transition-colors shadow-lg shadow-[#1E232A]/20"
+          className="flex items-center gap-2 px-4 py-2.5 bg-[#005B4F] text-white text-sm font-semibold rounded-xl hover:bg-[#004A40] transition-all shadow-md shadow-[#005B4F]/20 active:scale-[0.98] cursor-pointer"
         >
           <Plus className="w-4 h-4" /> Add Dept Budget
         </button>
       </div>
 
       {/* Overview Banner */}
-      <div className="bg-gradient-to-r from-[#1E232A] to-[#2B3138] rounded-2xl p-6 text-white shadow-sm flex items-center justify-between flex-wrap gap-4">
+      <div className="bg-gradient-to-r from-[#005B4F] to-[#007D6D] rounded-2xl p-6 text-white shadow-sm flex items-center justify-between flex-wrap gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Total Allocated Budget</p>
+          <p className="text-xs font-semibold uppercase tracking-wider text-emerald-100">Total Allocated Budget</p>
           <p className="text-3xl font-extrabold mt-1 text-white">{formatCurrency(totalBudget)}</p>
-          <p className="text-xs text-gray-400 mt-1">{departments.length} Active Departments</p>
+          <p className="text-xs text-emerald-100/80 mt-1">{departments.length} Active Departments</p>
         </div>
         <div className="text-right">
-          <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Total Utilized</p>
-          <p className="text-2xl font-bold mt-1 text-emerald-400">{formatCurrency(totalSpent)}</p>
-          <p className="text-xs text-gray-400 mt-1">Remaining: {formatCurrency(Math.max(0, totalBudget - totalSpent))}</p>
+          <p className="text-xs font-semibold uppercase tracking-wider text-emerald-100">Total Utilized</p>
+          <p className="text-2xl font-bold mt-1 text-white">{formatCurrency(totalSpent)}</p>
+          <p className="text-xs text-emerald-100/80 mt-1">Remaining: {formatCurrency(Math.max(0, totalBudget - totalSpent))}</p>
         </div>
       </div>
 
@@ -131,7 +131,7 @@ export default function BusinessBudgets() {
                           setForm({ name: dept.name, budget: dept.budget });
                           setShowModal(true);
                         }}
-                        className="p-1 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-[#1E232A]"
+                        className="p-1 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-[#005B4F]"
                       >
                         <Edit2 className="w-3.5 h-3.5" />
                       </button>
@@ -147,7 +147,7 @@ export default function BusinessBudgets() {
                   </div>
                   <div className="w-full h-2 bg-[#F4F6F8] rounded-full overflow-hidden mt-1 mb-2">
                     <div
-                      className={`h-full rounded-full transition-all ${isOver ? "bg-rose-500" : usage > 80 ? "bg-amber-500" : "bg-[#1E232A]"}`}
+                      className={`h-full rounded-full transition-all ${isOver ? "bg-rose-500" : usage > 80 ? "bg-amber-500" : "bg-[#005B4F]"}`}
                       style={{ width: `${usage}%` }}
                     />
                   </div>
@@ -180,7 +180,7 @@ export default function BusinessBudgets() {
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                   required
-                  className="w-full h-11 px-4 border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#1E232A]"
+                  className="w-full h-11 px-4 border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#005B4F]"
                 />
               </div>
               <div>
@@ -192,12 +192,12 @@ export default function BusinessBudgets() {
                   onChange={(e) => setForm({ ...form, budget: e.target.value })}
                   required
                   min="1"
-                  className="w-full h-11 px-4 border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#1E232A]"
+                  className="w-full h-11 px-4 border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#005B4F]"
                 />
               </div>
               <button
                 type="submit"
-                className="w-full h-12 bg-[#1E232A] text-white text-sm font-semibold rounded-xl hover:bg-[#15191E] transition-colors"
+                className="w-full h-12 bg-[#005B4F] text-white text-sm font-semibold rounded-xl hover:bg-[#004A40] shadow-md shadow-[#005B4F]/20 transition-all cursor-pointer"
               >
                 Save Department Budget
               </button>

@@ -51,6 +51,26 @@ const expenseSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    gstRate: {
+      type: Number,
+      default: 0,
+    },
+    gstAmount: {
+      type: Number,
+      default: 0,
+    },
+    department: {
+      type: String,
+      default: "General",
+    },
+    vendor: {
+      type: String,
+      default: "",
+    },
+    isAccountDeducted: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );

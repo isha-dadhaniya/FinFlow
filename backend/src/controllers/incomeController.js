@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const Income = require("../models/Income");
 const Transaction = require("../models/Transaction");
 const Account = require("../models/Account");
@@ -31,15 +32,40 @@ const createIncome = async (req, res) => {
   try {
     const income = await Income.create({ ...req.body, userId: req.user.id });
 
-    // 1. Automatically increment the linked Bank Account balance
+    // 1. Automatically increment the linked Family / Personal Bank Account balance
     if (income.account) {
-      await Account.findOneAndUpdate(
-        { userId: req.user.id, name: income.account },
-        { $inc: { balance: income.amount } }
-      );
+      const isObjectId = mongoose.Types.ObjectId.isValid(income.account);
+      const accFilter = {
+        userId: req.user.id,
+        $or: [
+          { name: income.account },
+          { bankName: income.account },
+          { nickname: income.account },
+          ...(isObjectId ? [{ _id: income.account }] : []),
+        ],
+      };
+      if (income.workspace) {
+        accFilter.workspace = income.workspace;
+      }
+
+      let updatedAcc = await Account.findOneAndUpdate(accFilter, { $inc: { balance: Number(income.amount) || 0 } }, { new: true });
+      if (!updatedAcc) {
+        await Account.findOneAndUpdate(
+          {
+            userId: req.user.id,
+            $or: [
+              { name: income.account },
+              { bankName: income.account },
+              { nickname: income.account },
+              ...(isObjectId ? [{ _id: income.account }] : []),
+            ],
+          },
+          { $inc: { balance: Number(income.amount) || 0 } }
+        );
+      }
     }
 
-    // 2. Sync into Transaction collection
+    // 2. Sync into Transaction collection with appropriate module tag (family / personal)
     await Transaction.create({
       userId: req.user.id,
       title: income.title,
@@ -55,6 +81,7 @@ const createIncome = async (req, res) => {
 
     res.status(201).json(income);
   } catch (error) {
+    console.error("createIncome error:", error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -73,8 +100,17 @@ const updateIncome = async (req, res) => {
     if (oldIncome && income.account) {
       const diff = (Number(income.amount) || 0) - (Number(oldIncome.amount) || 0);
       if (diff !== 0) {
+        const isObjectId = mongoose.Types.ObjectId.isValid(income.account);
         await Account.findOneAndUpdate(
-          { userId: req.user.id, name: income.account },
+          {
+            userId: req.user.id,
+            $or: [
+              { name: income.account },
+              { bankName: income.account },
+              { nickname: income.account },
+              ...(isObjectId ? [{ _id: income.account }] : []),
+            ],
+          },
           { $inc: { balance: diff } }
         );
       }
@@ -109,8 +145,17 @@ const deleteIncome = async (req, res) => {
 
     // Deduct the deleted income from the bank account balance
     if (income.account) {
+      const isObjectId = mongoose.Types.ObjectId.isValid(income.account);
       await Account.findOneAndUpdate(
-        { userId: req.user.id, name: income.account },
+        {
+          userId: req.user.id,
+          $or: [
+            { name: income.account },
+            { bankName: income.account },
+            { nickname: income.account },
+            ...(isObjectId ? [{ _id: income.account }] : []),
+          ],
+        },
         { $inc: { balance: -(Number(income.amount) || 0) } }
       );
     }

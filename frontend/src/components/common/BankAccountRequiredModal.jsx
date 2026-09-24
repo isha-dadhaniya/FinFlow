@@ -20,7 +20,7 @@ export default function BankAccountRequiredModal({
 
   const getThemeColor = () => {
     if (workspace === "family") return "bg-[#2A9D8F] hover:bg-[#21867A]";
-    if (workspace === "business") return "bg-[#1E232A] hover:bg-[#15191E]";
+    if (workspace === "business") return "bg-[#005B4F] hover:bg-[#004A40]";
     return "bg-[#005B4F] hover:bg-[#004A40]";
   };
 

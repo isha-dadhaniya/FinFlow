@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Plus, Trash2, Edit2, PiggyBank, Target, Calendar, Check, X, Users } from "lucide-react";
+import { Plus, Trash2, Edit2, PiggyBank, Target, Calendar, Check, X, Users, Landmark, AlertCircle, CheckCircle2 } from "lucide-react";
 import ConfirmModal from "../../components/common/ConfirmModal";
 
 const API = "http://localhost:5000/api";
@@ -22,12 +22,15 @@ const QUICK_CHIPS = [5000, 10000, 25000, 50000];
 
 export default function FamilyGoals() {
   const [goals, setGoals] = useState([]);
+  const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editItem, setEditItem] = useState(null);
   const [deleteGoalId, setDeleteGoalId] = useState(null);
   const [contribGoal, setContribGoal] = useState(null);
   const [contribAmount, setContribAmount] = useState("");
+  const [contribAccount, setContribAccount] = useState("");
+  const [contribNote, setContribNote] = useState("");
 
   const [form, setForm] = useState({
     title: "",
@@ -45,9 +48,19 @@ export default function FamilyGoals() {
   const loadGoals = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`${API}/workspace/family-goals?workspace=family`, { headers: headers() });
-      const data = await res.json();
-      setGoals(Array.isArray(data) ? data : []);
+      const [goalsRes, accsRes] = await Promise.allSettled([
+        fetch(`${API}/workspace/family-goals?workspace=family`, { headers: headers() }),
+        fetch(`${API}/accounts?workspace=family`, { headers: headers() }),
+      ]);
+
+      if (goalsRes.status === "fulfilled" && goalsRes.value.ok) {
+        const data = await goalsRes.value.json();
+        setGoals(Array.isArray(data) ? data : []);
+      }
+      if (accsRes.status === "fulfilled" && accsRes.value.ok) {
+        const accData = await accsRes.value.json();
+        setAccounts(Array.isArray(accData) ? accData : []);
+      }
     } catch (err) {
       console.error("Load family goals error:", err);
       setGoals([]);
@@ -130,15 +143,25 @@ export default function FamilyGoals() {
     e.preventDefault();
     if (!contribGoal || !contribAmount || Number(contribAmount) <= 0) return;
     try {
-      const updatedAmount = (contribGoal.currentAmount || 0) + Number(contribAmount);
-      await fetch(`${API}/workspace/family-goals/${contribGoal._id}`, {
-        method: "PUT",
+      const res = await fetch(`${API}/workspace/family-goals/${contribGoal._id}/contribute`, {
+        method: "POST",
         headers: headers(),
-        body: JSON.stringify({ currentAmount: updatedAmount }),
+        body: JSON.stringify({
+          amount: Number(contribAmount),
+          account: contribAccount,
+          note: contribNote.trim() || `Deposit to ${contribGoal.title || contribGoal.name}`,
+        }),
       });
+      if (!res.ok) {
+        alert("Failed to deposit contribution.");
+        return;
+      }
       setContribGoal(null);
       setContribAmount("");
+      setContribAccount("");
+      setContribNote("");
       loadGoals();
+      window.dispatchEvent(new Event("finflow_data_updated"));
     } catch (err) {
       console.error("Contribute error:", err);
     }
@@ -411,7 +434,17 @@ export default function FamilyGoals() {
       )}
 
       {/* Deposit Modal */}
-      {contribGoal && (
+      {contribGoal && (() => {
+        const selectedAccountObj = accounts.find(
+          (a) => (a.nickname || a.name || a.bankName) === contribAccount
+        );
+        const isAutoDeduct = contribAccount && contribAccount !== "Manual / Cash (No deduction)";
+        const isInsufficientBalance =
+          isAutoDeduct &&
+          selectedAccountObj &&
+          Number(contribAmount) > (selectedAccountObj.balance || 0);
+
+        return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-[fadeIn_0.15s_ease-out]" onClick={() => setContribGoal(null)}>
           <div className="bg-white rounded-[24px] shadow-2xl border border-[#E5E7EB] w-full max-w-md p-6 sm:p-7" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between pb-3 border-b border-gray-100 mb-4">
@@ -429,17 +462,22 @@ export default function FamilyGoals() {
 
             <form onSubmit={handleContribute} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-[#374151] uppercase tracking-wider mb-1.5">Contribution Amount (₹)</label>
-                <input
-                  type="number"
-                  value={contribAmount}
-                  onChange={(e) => setContribAmount(e.target.value)}
-                  required
-                  min="1"
-                  className="w-full h-12 px-3.5 border border-[#D1D5DB] rounded-xl text-lg font-extrabold text-[#1F2937] outline-none focus:border-[#005B4F]"
-                />
+                <label className="block text-xs font-bold text-[#374151] uppercase tracking-wider mb-1.5">Deposit Amount (₹)</label>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-base font-bold text-[#005B4F]">₹</span>
+                  <input
+                    type="number"
+                    value={contribAmount}
+                    onChange={(e) => setContribAmount(e.target.value)}
+                    required
+                    min="1"
+                    placeholder="Enter amount"
+                    className="w-full h-12 pl-8 pr-4 border border-[#D1D5DB] rounded-xl text-lg font-extrabold text-[#1F2937] outline-none focus:border-[#005B4F]"
+                  />
+                </div>
               </div>
 
+              {/* Quick Chip Buttons */}
               <div className="grid grid-cols-4 gap-2">
                 {QUICK_CHIPS.map((chip) => (
                   <button
@@ -453,18 +491,96 @@ export default function FamilyGoals() {
                 ))}
               </div>
 
+              {/* Pay From Bank Account */}
+              <div>
+                <label className="block text-xs font-bold text-[#374151] uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <Landmark className="w-3.5 h-3.5 text-[#005B4F]" /> Pay From Account
+                  </span>
+                  {selectedAccountObj && (
+                    <span className="text-[11px] font-semibold text-[#005B4F]">
+                      Balance: {formatCurrency(selectedAccountObj.balance)}
+                    </span>
+                  )}
+                </label>
+                <select
+                  value={contribAccount}
+                  onChange={(e) => setContribAccount(e.target.value)}
+                  className="w-full h-11 px-3.5 border border-[#D1D5DB] rounded-xl text-xs font-bold text-[#1F2937] bg-white outline-none focus:border-[#005B4F]"
+                >
+                  {accounts.map((acc) => {
+                    const accName = acc.nickname || acc.name || acc.bankName;
+                    return (
+                      <option key={acc._id} value={accName}>
+                        {accName} ({formatCurrency(acc.balance)}) {acc.isDefault ? "★ Default" : ""}
+                      </option>
+                    );
+                  })}
+                  <option value="Manual / Cash (No deduction)">Manual / Cash (No Account Deduction)</option>
+                </select>
+              </div>
+
+              {/* Informational & Balance Alert */}
+              {isAutoDeduct ? (
+                <div
+                  className={`p-3 rounded-xl text-xs flex items-start gap-2.5 ${
+                    isInsufficientBalance
+                      ? "bg-amber-50 text-amber-900 border border-amber-200"
+                      : "bg-emerald-50 text-emerald-900 border border-emerald-100"
+                  }`}
+                >
+                  {isInsufficientBalance ? (
+                    <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                  ) : (
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  )}
+                  <div className="space-y-0.5">
+                    <p className="font-bold text-[11px]">
+                      {isInsufficientBalance
+                        ? `Insufficient Funds Warning`
+                        : `Automatic Bank Deduction & Transaction Sync`}
+                    </p>
+                    <p className="text-[11px] leading-tight opacity-90">
+                      {isInsufficientBalance
+                        ? `Deposit (${formatCurrency(Number(contribAmount) || 0)}) exceeds current available balance (${formatCurrency(selectedAccountObj?.balance || 0)}).`
+                        : `${formatCurrency(Number(contribAmount) || 0)} will be deducted from ${contribAccount} and recorded as an expense transaction.`}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-3 rounded-xl bg-gray-50 border border-gray-200 text-xs text-gray-600 flex items-center gap-2">
+                  <span className="text-gray-400">ℹ️</span>
+                  <span className="text-[11px]">Manual deposit tracking only. No bank account balance will be deducted.</span>
+                </div>
+              )}
+
+              {/* Optional Deposit Note */}
+              <div>
+                <label className="block text-xs font-bold text-[#374151] uppercase tracking-wider mb-1.5">
+                  Deposit Note (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={contribNote}
+                  onChange={(e) => setContribNote(e.target.value)}
+                  placeholder="e.g., Monthly family savings, Festival bonus"
+                  className="w-full h-10 px-3.5 border border-[#D1D5DB] rounded-xl text-xs font-medium text-[#1F2937] outline-none focus:border-[#005B4F]"
+                />
+              </div>
+
               <div className="flex items-center justify-end gap-3 pt-3 border-t border-gray-100 mt-5">
                 <button type="button" onClick={() => setContribGoal(null)} className="px-4 py-2.5 rounded-xl border border-gray-300 text-xs font-semibold text-gray-700 hover:bg-gray-50 cursor-pointer">
                   Cancel
                 </button>
-                <button type="submit" className="px-6 py-2.5 rounded-xl bg-[#005B4F] text-white text-xs font-bold hover:bg-[#004A40] transition-colors shadow-lg shadow-[#005B4F]/20 cursor-pointer">
-                  Confirm Deposit
+                <button type="submit" className="px-6 py-2.5 rounded-xl bg-[#005B4F] text-white text-xs font-bold hover:bg-[#004A40] transition-colors shadow-lg shadow-[#005B4F]/20 flex items-center gap-1.5 cursor-pointer">
+                  <Check className="w-4 h-4" /> Confirm Deposit
                 </button>
               </div>
             </form>
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {/* In-App Delete Confirmation Modal */}
       <ConfirmModal

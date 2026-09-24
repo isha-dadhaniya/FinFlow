@@ -184,7 +184,6 @@ export default function MonthlyBudget() {
       <PageHeader
         title="Monthly Budget Manager"
         subtitle="Set category spending limits, track utilization progress, and automate threshold alerts."
-        badge="Personal Module"
         actionButton={
           <button
             onClick={handleOpenAddModal}

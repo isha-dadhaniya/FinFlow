@@ -69,7 +69,7 @@ export default function Approvals() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold text-[#1F2937]">Manager Approvals</h1>
-          <p className="text-sm text-[#6B7280] mt-0.5">Review, approve, and disburse employee expense reimbursements</p>
+          <p className="text-sm text-[#6B7280] mt-0.5">Review, approve, and disburse employee expense claims</p>
         </div>
         <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-xl text-xs font-bold text-amber-800">
           <Clock className="w-4 h-4" />
@@ -83,8 +83,8 @@ export default function Approvals() {
           <button
             key={s}
             onClick={() => setFilter(s)}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
-              filter === s ? "bg-[#1E232A] text-white" : "bg-white border border-[#E5E7EB] text-[#6B7280] hover:bg-gray-50"
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${
+              filter === s ? "bg-[#005B4F] text-white shadow-md shadow-[#005B4F]/20" : "bg-white border border-[#E5E7EB] text-[#6B7280] hover:bg-gray-50"
             }`}
           >
             {s === "all" ? "All Claims" : s}
@@ -106,7 +106,7 @@ export default function Approvals() {
             {filtered.map((claim) => (
               <div key={claim._id} className="p-5 hover:bg-[#F9FAFB] transition-colors flex items-center justify-between flex-wrap gap-4">
                 <div className="flex items-center gap-4">
-                  <div className="w-11 h-11 rounded-full bg-[#1E232A] text-white flex items-center justify-center font-bold text-sm shrink-0">
+                  <div className="w-11 h-11 rounded-full bg-[#005B4F] text-white flex items-center justify-center font-bold text-sm shrink-0">
                     {claim.employeeName ? claim.employeeName[0].toUpperCase() : "E"}
                   </div>
                   <div>
@@ -129,13 +129,13 @@ export default function Approvals() {
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => updateClaimStatus(claim._id, "Approved")}
-                        className="flex items-center gap-1 px-3 py-1.5 bg-emerald-600 text-white text-xs font-bold rounded-xl hover:bg-emerald-700 transition-colors shadow-xs"
+                        className="flex items-center gap-1 px-3 py-1.5 bg-emerald-600 text-white text-xs font-bold rounded-xl hover:bg-emerald-700 transition-colors shadow-xs cursor-pointer"
                       >
                         <Check className="w-3.5 h-3.5" /> Approve
                       </button>
                       <button
                         onClick={() => setRejectModalId(claim._id)}
-                        className="flex items-center gap-1 px-3 py-1.5 bg-rose-50 text-rose-600 text-xs font-bold rounded-xl hover:bg-rose-100 transition-colors"
+                        className="flex items-center gap-1 px-3 py-1.5 bg-rose-50 text-rose-600 text-xs font-bold rounded-xl hover:bg-rose-100 transition-colors cursor-pointer"
                       >
                         <X className="w-3.5 h-3.5" /> Reject
                       </button>
@@ -145,7 +145,7 @@ export default function Approvals() {
                   {claim.status === "Approved" && (
                     <button
                       onClick={() => updateClaimStatus(claim._id, "Paid")}
-                      className="px-3 py-1.5 bg-[#1E232A] text-white text-xs font-bold rounded-xl hover:bg-[#15191E] transition-colors"
+                      className="px-3.5 py-1.5 bg-[#005B4F] text-white text-xs font-bold rounded-xl hover:bg-[#004A40] shadow-md shadow-[#005B4F]/20 transition-all cursor-pointer"
                     >
                       Disburse / Mark Paid
                     </button>
@@ -162,13 +162,13 @@ export default function Approvals() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setRejectModalId(null)}>
           <div className="bg-white rounded-2xl shadow-2xl border border-[#E5E7EB] w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
             <h2 className="text-base font-bold text-[#1F2937] mb-2">Reject Claim</h2>
-            <p className="text-xs text-[#6B7280] mb-4">Please specify reason for rejecting this reimbursement.</p>
+            <p className="text-xs text-[#6B7280] mb-4">Please specify reason for rejecting this claim.</p>
             <textarea
               placeholder="e.g. Missing valid GST tax receipt"
               value={rejectReason}
               onChange={(e) => setRejectReason(e.target.value)}
               rows={3}
-              className="w-full px-4 py-3 border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#1E232A] resize-none mb-4"
+              className="w-full px-4 py-3 border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#005B4F] resize-none mb-4"
             />
             <div className="flex gap-2">
               <button

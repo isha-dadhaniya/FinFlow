@@ -115,16 +115,10 @@ export default function PersonalDashboard() {
     goalsSaved: 0,
   });
 
-  // Real-time raw streams for Cash Flow Graph
+  // Real-time raw streams for Cash Flow Graph & Metrics
   const [rawIncomes, setRawIncomes] = useState([]);
   const [rawExpenses, setRawExpenses] = useState([]);
   const [allTransactions, setAllTransactions] = useState([]);
-
-  // Recent Transactions (100% Real from DB)
-  const [recentTxns, setRecentTxns] = useState([]);
-
-  // Category Breakdown (100% Real from DB)
-  const [expenseCategories, setExpenseCategories] = useState([]);
 
   // Budgets (100% Real from DB)
   const [budgetData, setBudgetData] = useState({
@@ -144,12 +138,133 @@ export default function PersonalDashboard() {
     const hour = new Date().getHours();
     if (hour < 12) return "Good morning";
     if (hour < 17) return "Good afternoon";
-    return "Good evening";
+    if (hour < 21) return "Good evening";
+    return "Good night";
   }, []);
 
-  const currentMonthYear = useMemo(() => {
-    return new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" });
-  }, []);
+  // ─── DYNAMIC TIMEFRAME FILTER ENGINE ────────────────────────────
+  const dateRange = useMemo(() => {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+
+    if (timeFilter === "This Month") {
+      const start = new Date(currentYear, currentMonth, 1, 0, 0, 0, 0);
+      const end = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59, 999);
+      const label = now.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+      return { start, end, label: `for ${label}` };
+    }
+
+    if (timeFilter === "Last Month") {
+      const start = new Date(currentYear, currentMonth - 1, 1, 0, 0, 0, 0);
+      const end = new Date(currentYear, currentMonth, 0, 23, 59, 59, 999);
+      const label = start.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+      return { start, end, label: `for ${label}` };
+    }
+
+    if (timeFilter === "Last 3 Months") {
+      const start = new Date(currentYear, currentMonth - 2, 1, 0, 0, 0, 0);
+      const end = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59, 999);
+      const startMo = start.toLocaleDateString("en-US", { month: "short" });
+      const endMo = now.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+      return { start, end, label: `for the last 3 months (${startMo} – ${endMo})` };
+    }
+
+    if (timeFilter === "This Year") {
+      const start = new Date(currentYear, 0, 1, 0, 0, 0, 0);
+      const end = new Date(currentYear, 11, 31, 23, 59, 59, 999);
+      return { start, end, label: `for ${currentYear}` };
+    }
+
+    return { start: new Date(0), end: new Date(8640000000000000), label: "" };
+  }, [timeFilter]);
+
+  const isWithinRange = (dateVal, start, end) => {
+    if (!dateVal) return false;
+    const d = new Date(dateVal);
+    return !isNaN(d.getTime()) && d >= start && d <= end;
+  };
+
+  // Filtered raw streams based on active timeframe
+  const filteredIncomes = useMemo(() => {
+    return rawIncomes.filter((i) => isWithinRange(i.date || i.createdAt, dateRange.start, dateRange.end));
+  }, [rawIncomes, dateRange]);
+
+  const filteredExpenses = useMemo(() => {
+    return rawExpenses.filter((e) => isWithinRange(e.date || e.createdAt, dateRange.start, dateRange.end));
+  }, [rawExpenses, dateRange]);
+
+  const filteredTransactions = useMemo(() => {
+    return allTransactions.filter((t) => isWithinRange(t.date || t.createdAt, dateRange.start, dateRange.end));
+  }, [allTransactions, dateRange]);
+
+  // Recalculated metrics for the active timeframe
+  const effectiveIncome = useMemo(() => {
+    if (filteredIncomes.length > 0) {
+      return filteredIncomes.reduce((s, i) => s + (Number(i.amount) || 0), 0);
+    }
+    return filteredTransactions
+      .filter((t) => t.type === "income" || (Number(t.amount) > 0 && t.type !== "expense"))
+      .reduce((s, t) => s + Math.abs(Number(t.amount) || 0), 0);
+  }, [filteredIncomes, filteredTransactions]);
+
+  const effectiveExpenses = useMemo(() => {
+    if (filteredExpenses.length > 0) {
+      return filteredExpenses.reduce((s, e) => s + (Number(e.amount) || 0), 0);
+    }
+    return filteredTransactions
+      .filter((t) => t.type === "expense" || Number(t.amount) < 0)
+      .reduce((s, t) => s + Math.abs(Number(t.amount) || 0), 0);
+  }, [filteredExpenses, filteredTransactions]);
+
+  const effectiveBalance = useMemo(() => {
+    return stats.totalBalance || (effectiveIncome - effectiveExpenses);
+  }, [stats.totalBalance, effectiveIncome, effectiveExpenses]);
+
+  // Dynamic Category Breakdown based on active timeframe
+  const expenseCategories = useMemo(() => {
+    const catMap = {};
+    if (filteredExpenses.length > 0) {
+      filteredExpenses.forEach((e) => {
+        const c = e.category || "Other";
+        catMap[c] = (catMap[c] || 0) + (Number(e.amount) || 0);
+      });
+    } else {
+      filteredTransactions
+        .filter((t) => t.type === "expense" || Number(t.amount) < 0)
+        .forEach((t) => {
+          const c = t.category || "Other";
+          catMap[c] = (catMap[c] || 0) + Math.abs(Number(t.amount) || 0);
+        });
+    }
+
+    const total = Object.values(catMap).reduce((s, a) => s + a, 0);
+    const colors = ["#10B981", "#F43F5E", "#F59E0B", "#3B82F6", "#8B5CF6", "#EC4899", "#14B8A6"];
+    return Object.entries(catMap)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([name, amount], idx) => ({
+        name,
+        amount,
+        percentage: total > 0 ? Math.round((amount / total) * 100) : 0,
+        color: colors[idx % colors.length],
+      }));
+  }, [filteredExpenses, filteredTransactions]);
+
+  // Dynamic Recent Transactions based on active timeframe
+  const recentTxns = useMemo(() => {
+    const list = filteredTransactions.length > 0 ? filteredTransactions : [];
+    return list.slice(0, 5).map((t) => ({
+      _id: t._id || Math.random().toString(),
+      title: t.title || t.description || "Transaction",
+      category: t.category || "General",
+      date: t.date
+        ? new Date(t.date).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
+        : "Today",
+      amount: Math.abs(Number(t.amount) || 0),
+      type: t.type || (Number(t.amount) < 0 ? "expense" : "income"),
+    }));
+  }, [filteredTransactions]);
 
   useEffect(() => {
     loadData();
@@ -228,19 +343,6 @@ export default function PersonalDashboard() {
             const c = e.category || "Other";
             catMap[c] = (catMap[c] || 0) + (Number(e.amount) || 0);
           });
-
-          const colors = ["#10B981", "#F43F5E", "#F59E0B", "#3B82F6", "#8B5CF6", "#EC4899", "#14B8A6"];
-          const catEntries = Object.entries(catMap)
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, 5)
-            .map(([name, amount], idx) => ({
-              name,
-              amount,
-              percentage: totalExpenses > 0 ? Math.round((amount / totalExpenses) * 100) : 0,
-              color: colors[idx % colors.length],
-            }));
-
-          setExpenseCategories(catEntries);
         }
       }
 
@@ -249,23 +351,6 @@ export default function PersonalDashboard() {
         const txnData = await txnRes.value.json();
         const txns = txnData.transactions || (Array.isArray(txnData) ? txnData : []);
         setAllTransactions(txns);
-
-        if (txns.length > 0) {
-          setRecentTxns(
-            txns.slice(0, 5).map((t) => ({
-              _id: t._id || Math.random().toString(),
-              title: t.title || t.description || "Transaction",
-              category: t.category || "General",
-              date: t.date
-                ? new Date(t.date).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
-                : "Today",
-              amount: Number(t.amount) || 0,
-              type: t.type || (t.amount < 0 ? "expense" : "income"),
-            }))
-          );
-        } else {
-          setRecentTxns([]);
-        }
       }
 
       // 5. Real Savings Goals
@@ -279,40 +364,19 @@ export default function PersonalDashboard() {
         }
       }
 
-      // 6. Real Upcoming Bills & Loans
+      // 6. Real Upcoming Loans & EMI
       let combinedUpcoming = [];
-      if (billRes.status === "fulfilled" && billRes.value.ok) {
-        const bills = await billRes.value.json();
-        if (Array.isArray(bills)) {
-          bills
-            .filter((b) => b.status !== "paid")
-            .slice(0, 2)
-            .forEach((b) => {
-              combinedUpcoming.push({
-                _id: b._id,
-                title: b.title || b.name || "Bill Payment",
-                dueDate: b.dueDate
-                  ? `Due on ${new Date(b.dueDate).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}`
-                  : "Due soon",
-                amount: Number(b.amount) || 0,
-                icon: b.category === "Electricity" ? Zap : Tv,
-                color: b.category === "Electricity" ? "bg-amber-50 text-amber-500" : "bg-emerald-50 text-emerald-600",
-              });
-            });
-        }
-      }
-
       if (loanRes.status === "fulfilled" && loanRes.value.ok) {
         const loans = await loanRes.value.json();
         if (Array.isArray(loans)) {
-          loans.slice(0, 1).forEach((l) => {
-            combinedUpcoming.unshift({
-              _id: l._id || "loan-1",
-              title: `${l.loanName || "Loan"} EMI`,
+          loans.slice(0, 3).forEach((l, idx) => {
+            combinedUpcoming.push({
+              _id: l._id || `loan-${idx}`,
+              title: `${l.loanName || l.name || "Loan"} EMI`,
               dueDate: l.nextDueDate
                 ? `Due on ${new Date(l.nextDueDate).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}`
                 : "Due this month",
-              amount: Number(l.emiAmount) || 0,
+              amount: Number(l.emiAmount || l.emi || l.monthlyPayment || 0),
               icon: Home,
               color: "bg-rose-50 text-rose-500",
             });
@@ -382,7 +446,7 @@ export default function PersonalDashboard() {
 
   const topExpense = expenseCategories[0] || null;
   const totalBudgetLimit = budgetData.totalLimit || 0;
-  const totalBudgetSpent = budgetData.totalSpent || stats.totalExpenses || 0;
+  const totalBudgetSpent = budgetData.totalSpent || effectiveExpenses || 0;
   const budgetSpentPercent =
     totalBudgetLimit > 0 ? Math.min(100, Math.round((totalBudgetSpent / totalBudgetLimit) * 100)) : (totalBudgetSpent > 0 ? 100 : 0);
   const budgetRemaining = Math.max(0, totalBudgetLimit - totalBudgetSpent);
@@ -394,10 +458,9 @@ export default function PersonalDashboard() {
         <div>
           <h1 className="text-2xl sm:text-[28px] font-extrabold text-[#111827] tracking-tight flex items-center gap-2">
             <span>{greeting}, {firstName}!</span>
-            <span className="text-2xl select-none">👋</span>
           </h1>
           <p className="text-xs sm:text-sm font-medium text-[#6B7280] mt-1">
-            Here's your real-time financial overview for {currentMonthYear}
+            Here's your real-time financial overview {dateRange.label}
           </p>
         </div>
 
@@ -443,7 +506,7 @@ export default function PersonalDashboard() {
           <div>
             <p className="text-[11px] font-bold text-[#6B7280] uppercase tracking-wider">TOTAL BALANCE</p>
             <p className="text-2xl font-bold text-[#00695C] tracking-tight mt-0.5">
-              {formatCurrency(stats.totalBalance)}
+              {formatCurrency(effectiveBalance)}
             </p>
           </div>
         </div>
@@ -456,7 +519,7 @@ export default function PersonalDashboard() {
           <div>
             <p className="text-[11px] font-bold text-[#6B7280] uppercase tracking-wider">TOTAL INCOME</p>
             <p className="text-2xl font-bold text-[#009B70] tracking-tight mt-0.5">
-              {formatCurrency(stats.totalIncome)}
+              {formatCurrency(effectiveIncome)}
             </p>
           </div>
         </div>
@@ -469,7 +532,7 @@ export default function PersonalDashboard() {
           <div>
             <p className="text-[11px] font-bold text-[#6B7280] uppercase tracking-wider">TOTAL EXPENSES</p>
             <p className="text-2xl font-bold text-[#E53935] tracking-tight mt-0.5">
-              {formatCurrency(stats.totalExpenses)}
+              {formatCurrency(effectiveExpenses)}
             </p>
           </div>
         </div>
@@ -492,8 +555,8 @@ export default function PersonalDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Panel 1: Cash Flow Graph (100% Real DB numbers) */}
         <CashFlowGraph
-          totalIncome={stats.totalIncome}
-          totalExpenses={stats.totalExpenses}
+          totalIncome={effectiveIncome}
+          totalExpenses={effectiveExpenses}
           incomes={rawIncomes}
           expenses={rawExpenses}
           transactions={allTransactions}
@@ -658,7 +721,7 @@ export default function PersonalDashboard() {
             {/* Transactions List */}
             {recentTxns.length === 0 ? (
               <div className="py-8 text-center text-xs text-gray-400">
-                No recent transactions found
+                No transactions recorded for {timeFilter.toLowerCase()}
               </div>
             ) : (
               <div className="space-y-3">
@@ -776,12 +839,12 @@ export default function PersonalDashboard() {
           </Link>
         </div>
 
-        {/* Panel 3: Upcoming Payments */}
+        {/* Panel 3: Loans & EMI */}
         <div className="bg-white rounded-2xl border border-[#E5E7EB] p-5 sm:p-6 flex flex-col justify-between hover:shadow-xs transition-all">
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-base font-bold text-[#111827]">Upcoming Payments</h2>
-              <Link to="/app/personal/bills" className="text-xs font-bold text-[#005B4F] hover:underline">
+              <h2 className="text-base font-bold text-[#111827]">Loans & EMI</h2>
+              <Link to="/app/personal/loans-emi" className="text-xs font-bold text-[#005B4F] hover:underline">
                 View All
               </Link>
             </div>
@@ -789,7 +852,7 @@ export default function PersonalDashboard() {
             {/* Upcoming Payments List */}
             {upcomingPayments.length === 0 ? (
               <div className="py-8 text-center text-xs text-gray-400">
-                No upcoming bills or EMI due
+                No active loans or EMI due
               </div>
             ) : (
               <div className="space-y-3.5">
@@ -816,10 +879,10 @@ export default function PersonalDashboard() {
 
           {/* Bottom Button */}
           <Link
-            to="/app/personal/bills"
+            to="/app/personal/loans-emi"
             className="flex items-center justify-center gap-1 text-xs font-bold text-[#005B4F] hover:text-[#004A40] pt-4 mt-3 border-t border-gray-100 transition-colors"
           >
-            <span>View All Bills</span>
+            <span>View Loans & EMI</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         </div>

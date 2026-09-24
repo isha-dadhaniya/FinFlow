@@ -46,13 +46,13 @@ import FamilyLoansEMI from "./pages/family/FamilyLoansEMI";
 import FamilyAccounts from "./pages/family/FamilyAccounts";
 import FamilyReports from "./pages/family/FamilyReports";
 import MemberContributions from "./pages/family/MemberContributions";
+import FamilyIncome from "./pages/family/FamilyIncome";
 
 // Business Workspace Pages
 import BusinessDashboard from "./pages/business/BusinessDashboard";
 import Employees from "./pages/business/Employees";
 import BusinessExpenses from "./pages/business/BusinessExpenses";
 import Approvals from "./pages/business/Approvals";
-import Reimbursements from "./pages/business/Reimbursements";
 import Departments from "./pages/business/Departments";
 import Projects from "./pages/business/Projects";
 import Vendors from "./pages/business/Vendors";
@@ -107,6 +107,7 @@ function App() {
               <Route path="family/dashboard" element={<FamilyDashboard />} />
               <Route path="family/members" element={<FamilyMembers />} />
               <Route path="family/transactions" element={<FamilyTransactions />} />
+              <Route path="family/income" element={<FamilyIncome />} />
               <Route path="family/shared-expenses" element={<SharedExpenses />} />
               <Route path="family/bills" element={<FamilyBills />} />
               <Route path="family/budget" element={<FamilyBudget />} />
@@ -122,7 +123,7 @@ function App() {
               <Route path="business/employees" element={<Employees />} />
               <Route path="business/expenses" element={<BusinessExpenses />} />
               <Route path="business/approvals" element={<Approvals />} />
-              <Route path="business/reimbursements" element={<Reimbursements />} />
+              <Route path="business/reimbursements" element={<Navigate to="/app/business/dashboard" replace />} />
               <Route path="business/departments" element={<Departments />} />
               <Route path="business/projects" element={<Projects />} />
               <Route path="business/vendors" element={<Vendors />} />

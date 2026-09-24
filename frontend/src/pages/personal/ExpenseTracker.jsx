@@ -153,7 +153,15 @@ export default function ExpenseTracker() {
     setCategory(exp.category || "Food");
     setDate(exp.date ? new Date(exp.date).toISOString().split("T")[0] : new Date().toISOString().split("T")[0]);
     setPaymentMethod(exp.paymentMethod || "Bank Transfer");
-    setAccount(exp.account || "");
+    const defaultAcc = accounts.length > 0 ? (accounts[0].name || accounts[0].nickname || accounts[0].bankName) : "";
+    const matchedAcc = accounts.find(
+      (a) => a.name === exp.account || a.nickname === exp.account || a.bankName === exp.account || a._id === exp.account
+    );
+    setAccount(
+      exp.paymentMethod === "Cash"
+        ? ""
+        : (matchedAcc ? (matchedAcc.name || matchedAcc.nickname || matchedAcc.bankName) : (exp.account || defaultAcc))
+    );
     setNotes(exp.notes || "");
     setReceipt(exp.receipt || "");
     setReceiptFileName(exp.receipt ? "Uploaded Receipt" : "");
@@ -239,6 +247,7 @@ export default function ExpenseTracker() {
 
       setIsModalOpen(false);
       loadData();
+      window.dispatchEvent(new Event("finflow_data_updated"));
     } catch (err) {
       setToast({ message: "Failed to save expense. Please try again.", type: "error" });
     }
@@ -252,6 +261,7 @@ export default function ExpenseTracker() {
       setToast({ message: "Expense deleted and balance refunded if applicable!", type: "success" });
       setDeleteId(null);
       loadData();
+      window.dispatchEvent(new Event("finflow_data_updated"));
     } catch (err) {
       setToast({ message: "Failed to delete expense.", type: "error" });
     }
@@ -572,7 +582,6 @@ export default function ExpenseTracker() {
       <PageHeader
         title="Expense Tracker"
         subtitle="Track, categorize, analyze, and manage your personal spending."
-        badge="Personal Module"
         actionButton={
           <div className="flex items-center gap-3">
             <button

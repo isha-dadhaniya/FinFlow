@@ -30,7 +30,7 @@ export default function Employees() {
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div><h1 className="text-2xl font-bold text-[#1F2937]">Employees</h1><p className="text-sm text-[#6B7280] mt-0.5">Manage team members</p></div>
-        <button onClick={() => { setEditItem(null); setShowForm(true); }} className="flex items-center gap-2 px-4 py-2.5 bg-[#1E232A] text-white text-sm font-semibold rounded-xl hover:bg-[#15191E] shadow-lg shadow-[#1E232A]/20"><Plus className="w-4 h-4" /> Add Employee</button>
+        <button onClick={() => { setEditItem(null); setShowForm(true); }} className="flex items-center gap-2 px-4 py-2.5 bg-[#005B4F] text-white text-sm font-semibold rounded-xl hover:bg-[#004A40] shadow-md shadow-[#005B4F]/20 transition-all active:scale-[0.98] cursor-pointer"><Plus className="w-4 h-4" /> Add Employee</button>
       </div>
 
       <div className="bg-white rounded-2xl border border-[#E5E7EB] overflow-hidden">
@@ -40,7 +40,7 @@ export default function Employees() {
             {employees.map(emp => (
               <div key={emp._id} className="flex items-center justify-between px-5 py-4 hover:bg-[#F9FAFB]">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-[#1E232A] text-white font-bold text-sm flex items-center justify-center">{emp.name?.[0]?.toUpperCase()}</div>
+                  <div className="w-10 h-10 rounded-full bg-[#005B4F] text-white font-bold text-sm flex items-center justify-center">{emp.name?.[0]?.toUpperCase()}</div>
                   <div>
                     <p className="text-sm font-semibold text-[#1F2937]">{emp.name} <span className="text-[10px] text-[#9CA3AF] ml-1">{emp.employeeId}</span></p>
                     <p className="text-[11px] text-[#9CA3AF]">{emp.designation || emp.role} · {emp.department}</p>
@@ -62,17 +62,17 @@ export default function Employees() {
           <div className="bg-white rounded-2xl shadow-2xl border w-full max-w-lg p-6" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5"><h2 className="text-lg font-bold text-[#1F2937]">{editItem ? "Edit" : "Add"} Employee</h2><button onClick={() => setShowForm(false)} className="p-1.5 rounded-lg hover:bg-gray-100"><X className="w-4 h-4" /></button></div>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <input type="text" placeholder="Full Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required className="w-full h-11 px-4 border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#1E232A]" />
+              <input type="text" placeholder="Full Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required className="w-full h-11 px-4 border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#005B4F]" />
               <div className="grid grid-cols-2 gap-3">
-                <input type="text" placeholder="Employee ID" value={form.employeeId} onChange={(e) => setForm({ ...form, employeeId: e.target.value })} className="h-11 px-4 border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#1E232A]" />
-                <input type="text" placeholder="Designation" value={form.designation} onChange={(e) => setForm({ ...form, designation: e.target.value })} className="h-11 px-4 border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#1E232A]" />
+                <input type="text" placeholder="Employee ID" value={form.employeeId} onChange={(e) => setForm({ ...form, employeeId: e.target.value })} className="h-11 px-4 border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#005B4F]" />
+                <input type="text" placeholder="Designation" value={form.designation} onChange={(e) => setForm({ ...form, designation: e.target.value })} className="h-11 px-4 border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#005B4F]" />
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <select value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} className="h-11 px-3 border border-[#E5E7EB] rounded-xl text-sm">{DEPARTMENTS.map(d => <option key={d}>{d}</option>)}</select>
-                <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} className="h-11 px-3 border border-[#E5E7EB] rounded-xl text-sm">{ROLES.map(r => <option key={r}>{r}</option>)}</select>
+                <select value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} className="h-11 px-3 border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#005B4F]">{DEPARTMENTS.map(d => <option key={d}>{d}</option>)}</select>
+                <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} className="h-11 px-3 border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#005B4F]">{ROLES.map(r => <option key={r}>{r}</option>)}</select>
               </div>
-              <input type="email" placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="w-full h-11 px-4 border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#1E232A]" />
-              <button type="submit" className="w-full h-12 bg-[#1E232A] text-white text-sm font-semibold rounded-xl hover:bg-[#15191E]">{editItem ? "Update" : "Add"} Employee</button>
+              <input type="email" placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="w-full h-11 px-4 border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#005B4F]" />
+              <button type="submit" className="w-full h-12 bg-[#005B4F] text-white text-sm font-semibold rounded-xl hover:bg-[#004A40] shadow-md shadow-[#005B4F]/20 transition-all">{editItem ? "Update" : "Add"} Employee</button>
             </form>
           </div>
         </div>

@@ -25,7 +25,7 @@ export default function Sidebar({ isCollapsed, onToggleCollapse, onItemClick }) 
   const modeAccents = {
     personal: { bg: "bg-[#005B4F]", ring: "ring-[#005B4F]/40", gradient: "from-[#005B4F] to-[#008573]" },
     family: { bg: "bg-[#2A9D8F]", ring: "ring-[#2A9D8F]/40", gradient: "from-[#2A9D8F] to-[#21867A]" },
-    business: { bg: "bg-[#1E232A]", ring: "ring-[#1E232A]/40", gradient: "from-[#1E232A] to-[#2B3138]" },
+    business: { bg: "bg-[#005B4F]", ring: "ring-[#005B4F]/40", gradient: "from-[#005B4F] to-[#007D6D]" },
   };
 
   const accent = modeAccents[activeMode] || modeAccents.personal;

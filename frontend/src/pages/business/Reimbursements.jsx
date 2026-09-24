@@ -20,7 +20,7 @@ export default function Reimbursements() {
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div><h1 className="text-2xl font-bold text-[#1F2937]">Reimbursements</h1><p className="text-sm text-[#6B7280] mt-0.5">Manage expense claims</p></div>
-        <button onClick={() => setShowForm(true)} className="flex items-center gap-2 px-4 py-2.5 bg-[#1E232A] text-white text-sm font-semibold rounded-xl hover:bg-[#15191E] shadow-lg shadow-[#1E232A]/20"><Plus className="w-4 h-4" /> New Claim</button>
+        <button onClick={() => setShowForm(true)} className="flex items-center gap-2 px-4 py-2.5 bg-[#005B4F] text-white text-sm font-semibold rounded-xl hover:bg-[#004A40] shadow-md shadow-[#005B4F]/20 transition-all active:scale-[0.98] cursor-pointer"><Plus className="w-4 h-4" /> New Claim</button>
       </div>
 
       <div className="bg-white rounded-2xl border border-[#E5E7EB] overflow-hidden">
@@ -54,10 +54,10 @@ export default function Reimbursements() {
           <div className="bg-white rounded-2xl shadow-2xl border w-full max-w-lg p-6" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5"><h2 className="text-lg font-bold">New Reimbursement</h2><button onClick={() => setShowForm(false)} className="p-1.5 rounded-lg hover:bg-gray-100"><X className="w-4 h-4" /></button></div>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <input type="text" placeholder="Employee Name" value={form.employeeName} onChange={(e) => setForm({ ...form, employeeName: e.target.value })} required className="w-full h-11 px-4 border border-[#E5E7EB] rounded-xl text-sm" />
-              <input type="number" placeholder="Amount" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} required min="0" className="w-full h-11 px-4 border border-[#E5E7EB] rounded-xl text-sm" />
-              <textarea placeholder="Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} className="w-full px-4 py-3 border border-[#E5E7EB] rounded-xl text-sm resize-none" />
-              <button type="submit" className="w-full h-12 bg-[#1E232A] text-white text-sm font-semibold rounded-xl hover:bg-[#15191E]">Submit Claim</button>
+              <input type="text" placeholder="Employee Name" value={form.employeeName} onChange={(e) => setForm({ ...form, employeeName: e.target.value })} required className="w-full h-11 px-4 border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#005B4F]" />
+              <input type="number" placeholder="Amount" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} required min="0" className="w-full h-11 px-4 border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#005B4F]" />
+              <textarea placeholder="Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} className="w-full px-4 py-3 border border-[#E5E7EB] rounded-xl text-sm resize-none outline-none focus:border-[#005B4F]" />
+              <button type="submit" className="w-full h-12 bg-[#005B4F] text-white text-sm font-semibold rounded-xl hover:bg-[#004A40] shadow-md shadow-[#005B4F]/20 transition-all">Submit Claim</button>
             </form>
           </div>
         </div>

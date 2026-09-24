@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import {
   LayoutGrid,
   Lock,
-  Check,
   CheckCircle2,
   Users,
   Briefcase,
@@ -13,9 +12,37 @@ import {
   ChevronRight,
   AlertTriangle,
   Pencil,
+  Building,
+  Mail,
+  Phone,
+  MapPin,
+  Calendar,
+  Camera,
+  Upload,
+  Image as ImageIcon,
 } from "lucide-react";
 import { useWorkspace } from "../context/WorkspaceContext";
-import { updateSelectedModes as apiUpdateSelectedModes, changeUserPassword, createFamilyMember } from "../api/services";
+import { updateSelectedModes as apiUpdateSelectedModes, changeUserPassword, createFamilyMember, createEmployee } from "../api/services";
+
+const BUSINESS_TYPES = [
+  "Private Limited (Pvt Ltd)",
+  "Sole Proprietorship",
+  "Partnership Firm",
+  "Limited Liability Partnership (LLP)",
+  "Public Limited Company",
+  "Freelancer / Agency",
+  "Retail / Wholesale Enterprise",
+  "Startup / Tech Company",
+  "Other",
+];
+
+const FINANCIAL_YEARS = [
+  "FY 2025 - 2026 (Apr - Mar)",
+  "FY 2026 - 2027 (Apr - Mar)",
+  "FY 2024 - 2025 (Apr - Mar)",
+  "CY 2026 (Jan - Dec)",
+  "CY 2025 (Jan - Dec)",
+];
 
 const WORKSPACE_DEFINITIONS = {
   personal: {
@@ -66,7 +93,6 @@ export default function Settings() {
 
   // Feedback states
   const [savedToast, setSavedToast] = useState("");
-  const [successBanner, setSuccessBanner] = useState("");
 
   // Password / Security states (Matches Image 2 exactly)
   const [currentPassword, setCurrentPassword] = useState("");
@@ -83,11 +109,18 @@ export default function Settings() {
   const [customCurrency, setCustomCurrency] = useState("₹ INR");
   const [inviteInput, setInviteInput] = useState("");
   const [inviteRole, setInviteRole] = useState("Member");
-  const [invitedMembers, setInvitedMembers] = useState([
-    { email: "varsha@gmail.com", role: "Member" },
-  ]);
+  const [invitedMembers, setInvitedMembers] = useState([]);
   const [enableContributions, setEnableContributions] = useState(true);
   const [isCreatingWorkspace, setIsCreatingWorkspace] = useState(false);
+
+  // Business Workspace Specific Fields (Add Modal)
+  const [businessName, setBusinessName] = useState("My Business");
+  const [businessLogo, setBusinessLogo] = useState(null);
+  const [businessType, setBusinessType] = useState("Private Limited (Pvt Ltd)");
+  const [businessEmail, setBusinessEmail] = useState("");
+  const [businessPhone, setBusinessPhone] = useState("");
+  const [businessAddress, setBusinessAddress] = useState("");
+  const [financialYear, setFinancialYear] = useState("FY 2025 - 2026 (Apr - Mar)");
 
   // Edit Workspace Modal States
   const [workspaceToEdit, setWorkspaceToEdit] = useState(null);
@@ -98,13 +131,67 @@ export default function Settings() {
   const [editInviteRole, setEditInviteRole] = useState("Member");
   const [editContributions, setEditContributions] = useState(true);
 
+  // Edit Business Specific Fields (Edit Modal)
+  const [editBusinessName, setEditBusinessName] = useState("");
+  const [editBusinessLogo, setEditBusinessLogo] = useState(null);
+  const [editBusinessType, setEditBusinessType] = useState("Private Limited (Pvt Ltd)");
+  const [editBusinessEmail, setEditBusinessEmail] = useState("");
+  const [editBusinessPhone, setEditBusinessPhone] = useState("");
+  const [editBusinessAddress, setEditBusinessAddress] = useState("");
+  const [editFinancialYear, setEditFinancialYear] = useState("FY 2025 - 2026 (Apr - Mar)");
+
+  // Logo file upload / removal handlers
+  const handleLogoUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      alert("Logo image size should be less than 2MB.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setBusinessLogo(event.target.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveLogo = () => {
+    setBusinessLogo(null);
+  };
+
+  const handleEditLogoUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      alert("Logo image size should be less than 2MB.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setEditBusinessLogo(event.target.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveEditLogo = () => {
+    setEditBusinessLogo(null);
+  };
+
   // Delete Workspace Confirmation Modal State
   const [workspaceToDelete, setWorkspaceToDelete] = useState(null);
 
   // Stored workspace metadata for member names / customizations
   const [workspaceMetadata, setWorkspaceMetadata] = useState(() => {
     try {
-      return JSON.parse(localStorage.getItem("finflow_workspaces_config") || "{}");
+      const raw = localStorage.getItem("finflow_workspaces_config");
+      const parsed = JSON.parse(raw || "{}");
+      if (parsed?.family?.members) {
+        parsed.family.members = parsed.family.members.filter(
+          (m) => (m.email || "").toLowerCase() !== "varsha@gmail.com"
+        );
+        localStorage.setItem("finflow_workspaces_config", JSON.stringify(parsed));
+      }
+      return parsed;
     } catch {
       return {};
     }
@@ -117,9 +204,14 @@ export default function Settings() {
     setModalStep(1);
     setCustomName(unadded === "family" ? "My Family" : unadded === "business" ? "My Business" : "Personal Finance");
     setCustomCurrency("₹ INR");
-    setInvitedMembers([
-      { email: "varsha@gmail.com", role: "Member" },
-    ]);
+    setBusinessName("My Business");
+    setBusinessLogo(null);
+    setBusinessType("Private Limited (Pvt Ltd)");
+    setBusinessEmail("");
+    setBusinessPhone("");
+    setBusinessAddress("");
+    setFinancialYear("FY 2025 - 2026 (Apr - Mar)");
+    setInvitedMembers([]);
     setEnableContributions(true);
     setIsAddModalOpen(true);
   };
@@ -128,6 +220,15 @@ export default function Settings() {
   const handleSelectWorkspaceType = (typeId) => {
     setSelectedType(typeId);
     setCustomName(typeId === "family" ? "My Family" : typeId === "business" ? "My Business" : "Personal Finance");
+    if (typeId === "business") {
+      setBusinessName("My Business");
+      setBusinessLogo(null);
+      setBusinessType("Private Limited (Pvt Ltd)");
+      setBusinessEmail("");
+      setBusinessPhone("");
+      setBusinessAddress("");
+      setFinancialYear("FY 2025 - 2026 (Apr - Mar)");
+    }
     setModalStep(2);
   };
 
@@ -149,6 +250,12 @@ export default function Settings() {
 
   // Step 2: Create / Add Workspace
   const handleCreateWorkspace = async () => {
+    if (selectedType === "business" && !businessName.trim() && !customName.trim()) {
+      setSavedToast("Business Name is required.");
+      setTimeout(() => setSavedToast(""), 3000);
+      return;
+    }
+
     setIsCreatingWorkspace(true);
     try {
       const updatedModes = Array.from(new Set([...selectedModes, selectedType]));
@@ -167,13 +274,26 @@ export default function Settings() {
       updateSelectedModes(updatedModes);
 
       // Save custom metadata
+      const businessData = selectedType === "business" ? {
+        businessName: businessName.trim() || customName.trim() || "My Business",
+        businessLogo: businessLogo || null,
+        logo: businessLogo || null,
+        businessType,
+        businessEmail: businessEmail.trim(),
+        businessPhone: businessPhone.trim(),
+        address: businessAddress.trim(),
+        businessAddress: businessAddress.trim(),
+        financialYear,
+      } : {};
+
       const newMeta = {
         ...workspaceMetadata,
         [selectedType]: {
-          name: customName || WORKSPACE_DEFINITIONS[selectedType]?.title,
+          name: (selectedType === "business" ? businessName.trim() : customName) || WORKSPACE_DEFINITIONS[selectedType]?.title,
           currency: customCurrency,
           members: invitedMembers,
           enableContributions,
+          ...businessData,
           createdAt: new Date().toISOString(),
         },
       };
@@ -205,9 +325,34 @@ export default function Settings() {
         }
       }
 
-      // Close modal and show success banner
+      // Directly sync members to Business Employees if creating Business workspace
+      if (selectedType === "business" && invitedMembers.length > 0) {
+        for (const m of invitedMembers) {
+          try {
+            const email = (m.email || "").trim();
+            let name = "";
+            if (email.includes("@")) {
+              const userPart = email.split("@")[0];
+              name = userPart.charAt(0).toUpperCase() + userPart.slice(1);
+            } else {
+              name = email || "Team Member";
+            }
+            await createEmployee({
+              name,
+              email,
+              role: m.role === "Admin" ? "Admin" : "Employee",
+              designation: m.role || "Employee",
+              department: "General",
+              workspace: "business",
+            });
+          } catch (empErr) {
+            console.warn("Business employee sync notice:", empErr);
+          }
+        }
+      }
+
+      // Close modal
       setIsAddModalOpen(false);
-      setSuccessBanner("You can now switch between your workspaces anytime.");
       setSavedToast(`${WORKSPACE_DEFINITIONS[selectedType]?.title || selectedType} created successfully!`);
       setTimeout(() => setSavedToast(""), 3500);
     } catch (err) {
@@ -227,6 +372,16 @@ export default function Settings() {
     setEditMembers(meta.members || []);
     setEditContributions(meta.enableContributions ?? true);
     setEditInviteInput("");
+
+    if (modeId === "business") {
+      setEditBusinessName(meta.businessName || meta.name || def.title || "My Business");
+      setEditBusinessLogo(meta.businessLogo || meta.logo || null);
+      setEditBusinessType(meta.businessType || "Private Limited (Pvt Ltd)");
+      setEditBusinessEmail(meta.businessEmail || "");
+      setEditBusinessPhone(meta.businessPhone || "");
+      setEditBusinessAddress(meta.businessAddress || meta.address || "");
+      setEditFinancialYear(meta.financialYear || "FY 2025 - 2026 (Apr - Mar)");
+    }
   };
 
   // Add member in Edit Modal
@@ -249,14 +404,27 @@ export default function Settings() {
   const handleSaveEditWorkspace = async () => {
     if (!workspaceToEdit) return;
 
+    const businessEditData = workspaceToEdit === "business" ? {
+      businessName: editBusinessName.trim() || editName.trim() || "My Business",
+      businessLogo: editBusinessLogo || null,
+      logo: editBusinessLogo || null,
+      businessType: editBusinessType,
+      businessEmail: editBusinessEmail.trim(),
+      businessPhone: editBusinessPhone.trim(),
+      address: editBusinessAddress.trim(),
+      businessAddress: editBusinessAddress.trim(),
+      financialYear: editFinancialYear,
+    } : {};
+
     const newMeta = {
       ...workspaceMetadata,
       [workspaceToEdit]: {
         ...(workspaceMetadata[workspaceToEdit] || {}),
-        name: editName.trim() || WORKSPACE_DEFINITIONS[workspaceToEdit]?.title,
+        name: (workspaceToEdit === "business" ? editBusinessName.trim() : editName.trim()) || WORKSPACE_DEFINITIONS[workspaceToEdit]?.title,
         currency: editCurrency,
         members: editMembers,
         enableContributions: editContributions,
+        ...businessEditData,
         updatedAt: new Date().toISOString(),
       },
     };
@@ -288,6 +456,32 @@ export default function Settings() {
       }
     }
 
+    // Directly sync members to Business Employees if editing Business workspace
+    if (workspaceToEdit === "business" && editMembers.length > 0) {
+      for (const m of editMembers) {
+        try {
+          const email = (m.email || "").trim();
+          let name = "";
+          if (email.includes("@")) {
+            const userPart = email.split("@")[0];
+            name = userPart.charAt(0).toUpperCase() + userPart.slice(1);
+          } else {
+            name = email || "Team Member";
+          }
+          await createEmployee({
+            name,
+            email,
+            role: m.role === "Admin" ? "Admin" : "Employee",
+            designation: m.role || "Employee",
+            department: "General",
+            workspace: "business",
+          });
+        } catch (empErr) {
+          console.warn("Business employee sync notice:", empErr);
+        }
+      }
+    }
+
     setSavedToast(`${editName || "Workspace"} updated successfully!`);
     setTimeout(() => setSavedToast(""), 3500);
     setWorkspaceToEdit(null);
@@ -297,7 +491,6 @@ export default function Settings() {
   const handleSwitchWorkspace = (modeId) => {
     if (modeId === activeMode) return;
     switchMode(modeId);
-    setSuccessBanner("You can now switch between your workspaces anytime.");
     setSavedToast(`Switched to ${workspaceMetadata[modeId]?.name || WORKSPACE_DEFINITIONS[modeId]?.title || modeId}!`);
     setTimeout(() => setSavedToast(""), 3000);
   };
@@ -440,15 +633,25 @@ export default function Settings() {
                   {/* Left: Avatar & Info */}
                   <div className="flex items-start gap-4 sm:gap-5 flex-1 min-w-0">
                     <div
-                      className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shrink-0 transition-transform ${
-                        modeId === "personal"
+                      className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shrink-0 transition-transform overflow-hidden ${
+                        (workspaceMetadata[modeId]?.logo || workspaceMetadata[modeId]?.businessLogo)
+                          ? "border border-gray-200 bg-white"
+                          : modeId === "personal"
                           ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
                           : modeId === "family"
                           ? "bg-purple-50 text-purple-600 border border-purple-100"
                           : "bg-blue-50 text-blue-600 border border-blue-100"
                       }`}
                     >
-                      <IconComp className="w-6 h-6" strokeWidth={1.8} />
+                      {workspaceMetadata[modeId]?.logo || workspaceMetadata[modeId]?.businessLogo ? (
+                        <img
+                          src={workspaceMetadata[modeId].logo || workspaceMetadata[modeId].businessLogo}
+                          alt={`${customTitle} Logo`}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <IconComp className="w-6 h-6" strokeWidth={1.8} />
+                      )}
                     </div>
 
                     <div className="flex-1 min-w-0">
@@ -458,6 +661,20 @@ export default function Settings() {
                       <p className="text-xs sm:text-sm text-[#6B7280] mt-0.5 leading-relaxed line-clamp-1">
                         {def.description}
                       </p>
+
+                      {/* Business meta tags if configured */}
+                      {modeId === "business" && workspaceMetadata[modeId]?.businessType && (
+                        <div className="flex items-center gap-2 flex-wrap mt-1.5 text-[11px]">
+                          <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded-md font-medium border border-blue-100">
+                            {workspaceMetadata[modeId].businessType}
+                          </span>
+                          {workspaceMetadata[modeId]?.financialYear && (
+                            <span className="text-gray-500 bg-gray-50 px-2 py-0.5 rounded-md border border-gray-100">
+                              {workspaceMetadata[modeId].financialYear}
+                            </span>
+                          )}
+                        </div>
+                      )}
 
                       {/* Status Badge */}
                       {isActive && (
@@ -523,24 +740,6 @@ export default function Settings() {
           })}
         </div>
 
-        {/* Success Banner */}
-        {successBanner && (
-          <div className="p-4 bg-emerald-50/90 border border-emerald-200 rounded-2xl flex items-center justify-between gap-3 text-emerald-800 text-xs sm:text-sm font-semibold animate-[fadeIn_0.2s_ease-out]">
-            <div className="flex items-center gap-2.5">
-              <div className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0">
-                <Check className="w-3.5 h-3.5" />
-              </div>
-              <span>{successBanner}</span>
-            </div>
-            <button
-              type="button"
-              onClick={() => setSuccessBanner("")}
-              className="text-emerald-700 hover:text-emerald-900 text-xs font-bold cursor-pointer"
-            >
-              Dismiss
-            </button>
-          </div>
-        )}
       </div>
 
       {/* ─────────────────────────────────────────────────────────────
@@ -606,7 +805,7 @@ export default function Settings() {
       {workspaceToEdit && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-[fadeIn_0.15s_ease-out]">
           <div
-            className="bg-white rounded-[24px] shadow-2xl border border-[#D9DEE3] w-full max-w-[520px] p-6 sm:p-7 space-y-5 animate-[scaleIn_0.2s_ease-out]"
+            className="bg-white rounded-[24px] shadow-2xl border border-[#D9DEE3] w-full max-w-[540px] p-6 sm:p-7 space-y-5 animate-[scaleIn_0.2s_ease-out] max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between">
@@ -625,16 +824,169 @@ export default function Settings() {
               </button>
             </div>
 
-            {/* Workspace Name */}
-            <div className="space-y-1.5">
-              <label className="block text-xs font-bold text-[#6B7280]">Workspace Name</label>
-              <input
-                type="text"
-                value={editName}
-                onChange={(e) => setEditName(e.target.value)}
-                className="w-full h-10 px-3.5 border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#005B4F]"
-              />
-            </div>
+            {/* If editing business workspace */}
+            {workspaceToEdit === "business" ? (
+              <div className="space-y-3.5">
+                {/* Business Logo */}
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold text-[#374151] flex items-center gap-1.5">
+                    <ImageIcon className="w-3.5 h-3.5 text-[#005B4F]" /> Business Logo
+                  </label>
+                  <div className="flex items-center gap-3.5 p-3 rounded-xl border border-dashed border-[#D1D5DB] bg-[#F9FAFB] hover:border-[#005B4F]/50 transition-all">
+                    <div className="relative w-14 h-14 rounded-xl border border-[#E5E7EB] bg-white overflow-hidden flex items-center justify-center shrink-0 shadow-2xs">
+                      {editBusinessLogo ? (
+                        <img
+                          src={editBusinessLogo}
+                          alt="Business Logo Preview"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex flex-col items-center justify-center text-gray-400">
+                          <Building className="w-6 h-6 text-gray-300" />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <label className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#E5E7EB] hover:border-[#005B4F] text-[#1F2937] hover:text-[#005B4F] rounded-lg text-xs font-semibold cursor-pointer shadow-2xs transition-all">
+                          <Upload className="w-3.5 h-3.5" />
+                          <span>{editBusinessLogo ? "Change Logo" : "Upload Logo"}</span>
+                          <input
+                            type="file"
+                            accept="image/png, image/jpeg, image/jpg, image/svg+xml, image/webp"
+                            className="hidden"
+                            onChange={handleEditLogoUpload}
+                          />
+                        </label>
+                        {editBusinessLogo && (
+                          <button
+                            type="button"
+                            onClick={handleRemoveEditLogo}
+                            className="px-2.5 py-1.5 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors font-medium cursor-pointer"
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-[#6B7280] mt-1">
+                        PNG, JPG, SVG, WebP up to 2MB (Square recommended)
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Business Name * */}
+                <div className="space-y-1">
+                  <label className="block text-xs font-bold text-[#374151] flex items-center gap-1.5">
+                    <Building className="w-3.5 h-3.5 text-[#005B4F]" /> Business Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={editBusinessName}
+                    onChange={(e) => {
+                      setEditBusinessName(e.target.value);
+                      setEditName(e.target.value);
+                    }}
+                    placeholder="e.g. My Business"
+                    required
+                    className="w-full h-10 px-3.5 border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#005B4F] transition-all"
+                  />
+                </div>
+
+                {/* Business Type */}
+                <div className="space-y-1">
+                  <label className="block text-xs font-bold text-[#374151] flex items-center gap-1.5">
+                    <Briefcase className="w-3.5 h-3.5 text-[#005B4F]" /> Business Type
+                  </label>
+                  <select
+                    value={editBusinessType}
+                    onChange={(e) => setEditBusinessType(e.target.value)}
+                    className="w-full h-10 px-3 border border-[#E5E7EB] rounded-xl text-xs sm:text-sm outline-none focus:border-[#005B4F] bg-white cursor-pointer"
+                  >
+                    {BUSINESS_TYPES.map((bt) => (
+                      <option key={bt} value={bt}>{bt}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Business Email & Business Phone */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="block text-xs font-bold text-[#374151] flex items-center gap-1.5">
+                      <Mail className="w-3.5 h-3.5 text-[#005B4F]" /> Business Email
+                    </label>
+                    <input
+                      type="email"
+                      value={editBusinessEmail}
+                      onChange={(e) => setEditBusinessEmail(e.target.value)}
+                      placeholder="contact@business.com"
+                      className="w-full h-10 px-3.5 border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#005B4F] transition-all"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-[#374151] flex items-center gap-1.5">
+                        <Phone className="w-3.5 h-3.5 text-[#005B4F]" /> Business Phone
+                      </label>
+                      <span className={`text-[10px] font-mono ${editBusinessPhone.length === 10 ? "text-emerald-600 font-bold" : "text-gray-400"}`}>
+                        {editBusinessPhone.length}/10
+                      </span>
+                    </div>
+                    <input
+                      type="tel"
+                      inputMode="numeric"
+                      maxLength={10}
+                      value={editBusinessPhone}
+                      onChange={(e) => setEditBusinessPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                      placeholder="10-digit phone"
+                      className="w-full h-10 px-3.5 border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#005B4F] font-mono transition-all"
+                    />
+                  </div>
+                </div>
+
+                {/* Address */}
+                <div className="space-y-1">
+                  <label className="block text-xs font-bold text-[#374151] flex items-center gap-1.5">
+                    <MapPin className="w-3.5 h-3.5 text-[#005B4F]" /> Address
+                  </label>
+                  <input
+                    type="text"
+                    value={editBusinessAddress}
+                    onChange={(e) => setEditBusinessAddress(e.target.value)}
+                    placeholder="Registered business address"
+                    className="w-full h-10 px-3.5 border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#005B4F] transition-all"
+                  />
+                </div>
+
+                {/* Financial Year */}
+                <div className="space-y-1">
+                  <label className="block text-xs font-bold text-[#374151] flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-[#005B4F]" /> Financial Year
+                  </label>
+                  <select
+                    value={editFinancialYear}
+                    onChange={(e) => setEditFinancialYear(e.target.value)}
+                    className="w-full h-10 px-3 border border-[#E5E7EB] rounded-xl text-xs sm:text-sm outline-none focus:border-[#005B4F] bg-white cursor-pointer"
+                  >
+                    {FINANCIAL_YEARS.map((fy) => (
+                      <option key={fy} value={fy}>{fy}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-[#6B7280]">Workspace Name</label>
+                <input
+                  type="text"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="w-full h-10 px-3.5 border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#005B4F]"
+                />
+              </div>
+            )}
 
             {/* Members Section (if not personal) */}
             {workspaceToEdit !== "personal" && (
@@ -898,10 +1250,10 @@ export default function Settings() {
               </div>
             )}
 
-            {/* ── STEP 2: CONFIGURE / SET UP WORKSPACE (IMAGE 1 STEP 3) ── */}
+            {/* ── STEP 2: CONFIGURE / SET UP WORKSPACE ── */}
             {modalStep === 2 && (
-              <div className="p-6 sm:p-7 space-y-5">
-                <div className="flex items-center justify-between">
+              <div className="p-6 sm:p-7 space-y-4 max-h-[85vh] overflow-y-auto">
+                <div className="flex items-center justify-between pb-1 border-b border-gray-100">
                   <div>
                     <h3 className="text-lg font-bold text-[#1F2937]">
                       Set Up {selectedType === "family" ? "Family" : selectedType === "business" ? "Business" : "Personal"} Workspace
@@ -919,17 +1271,171 @@ export default function Settings() {
                   </button>
                 </div>
 
-                {/* Workspace Name */}
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-bold text-[#6B7280]">Workspace Name</label>
-                  <input
-                    type="text"
-                    value={customName}
-                    onChange={(e) => setCustomName(e.target.value)}
-                    placeholder={selectedType === "family" ? "My Family" : selectedType === "business" ? "My Business" : "Personal Finance"}
-                    className="w-full h-10 px-3.5 border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#005B4F]"
-                  />
-                </div>
+                {/* If Business Workspace: render 7 business fields */}
+                {selectedType === "business" ? (
+                  <div className="space-y-3.5">
+                    {/* Business Logo */}
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-bold text-[#374151] flex items-center gap-1.5">
+                        <ImageIcon className="w-3.5 h-3.5 text-[#005B4F]" /> Business Logo
+                      </label>
+                      <div className="flex items-center gap-3.5 p-3 rounded-xl border border-dashed border-[#D1D5DB] bg-[#F9FAFB] hover:border-[#005B4F]/50 transition-all">
+                        <div className="relative w-14 h-14 rounded-xl border border-[#E5E7EB] bg-white overflow-hidden flex items-center justify-center shrink-0 shadow-2xs">
+                          {businessLogo ? (
+                            <img
+                              src={businessLogo}
+                              alt="Business Logo Preview"
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="flex flex-col items-center justify-center text-gray-400">
+                              <Building className="w-6 h-6 text-gray-300" />
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <label className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#E5E7EB] hover:border-[#005B4F] text-[#1F2937] hover:text-[#005B4F] rounded-lg text-xs font-semibold cursor-pointer shadow-2xs transition-all">
+                              <Upload className="w-3.5 h-3.5" />
+                              <span>{businessLogo ? "Change Logo" : "Upload Logo"}</span>
+                              <input
+                                type="file"
+                                accept="image/png, image/jpeg, image/jpg, image/svg+xml, image/webp"
+                                className="hidden"
+                                onChange={handleLogoUpload}
+                              />
+                            </label>
+                            {businessLogo && (
+                              <button
+                                type="button"
+                                onClick={handleRemoveLogo}
+                                className="px-2.5 py-1.5 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors font-medium cursor-pointer"
+                              >
+                                Remove
+                              </button>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-[#6B7280] mt-1">
+                            PNG, JPG, SVG, WebP up to 2MB (Square recommended)
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Business Name * */}
+                    <div className="space-y-1">
+                      <label className="block text-xs font-bold text-[#374151] flex items-center gap-1.5">
+                        <Building className="w-3.5 h-3.5 text-[#005B4F]" /> Business Name <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={businessName}
+                        onChange={(e) => {
+                          setBusinessName(e.target.value);
+                          setCustomName(e.target.value);
+                        }}
+                        placeholder="e.g. My Business"
+                        required
+                        className="w-full h-10 px-3.5 border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#005B4F] transition-all"
+                      />
+                    </div>
+
+                    {/* Business Type */}
+                    <div className="space-y-1">
+                      <label className="block text-xs font-bold text-[#374151] flex items-center gap-1.5">
+                        <Briefcase className="w-3.5 h-3.5 text-[#005B4F]" /> Business Type
+                      </label>
+                      <select
+                        value={businessType}
+                        onChange={(e) => setBusinessType(e.target.value)}
+                        className="w-full h-10 px-3 border border-[#E5E7EB] rounded-xl text-xs sm:text-sm outline-none focus:border-[#005B4F] bg-white cursor-pointer"
+                      >
+                        {BUSINESS_TYPES.map((bt) => (
+                          <option key={bt} value={bt}>{bt}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Business Email & Business Phone */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className="block text-xs font-bold text-[#374151] flex items-center gap-1.5">
+                          <Mail className="w-3.5 h-3.5 text-[#005B4F]" /> Business Email
+                        </label>
+                        <input
+                          type="email"
+                          value={businessEmail}
+                          onChange={(e) => setBusinessEmail(e.target.value)}
+                          placeholder="contact@business.com"
+                          className="w-full h-10 px-3.5 border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#005B4F] transition-all"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-bold text-[#374151] flex items-center gap-1.5">
+                            <Phone className="w-3.5 h-3.5 text-[#005B4F]" /> Business Phone
+                          </label>
+                          <span className={`text-[10px] font-mono ${businessPhone.length === 10 ? "text-emerald-600 font-bold" : "text-gray-400"}`}>
+                            {businessPhone.length}/10
+                          </span>
+                        </div>
+                        <input
+                          type="tel"
+                          inputMode="numeric"
+                          maxLength={10}
+                          value={businessPhone}
+                          onChange={(e) => setBusinessPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                          placeholder="10-digit phone"
+                          className="w-full h-10 px-3.5 border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#005B4F] font-mono transition-all"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Address */}
+                    <div className="space-y-1">
+                      <label className="block text-xs font-bold text-[#374151] flex items-center gap-1.5">
+                        <MapPin className="w-3.5 h-3.5 text-[#005B4F]" /> Address
+                      </label>
+                      <input
+                        type="text"
+                        value={businessAddress}
+                        onChange={(e) => setBusinessAddress(e.target.value)}
+                        placeholder="Registered business address"
+                        className="w-full h-10 px-3.5 border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#005B4F] transition-all"
+                      />
+                    </div>
+
+                    {/* Financial Year */}
+                    <div className="space-y-1">
+                      <label className="block text-xs font-bold text-[#374151] flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5 text-[#005B4F]" /> Financial Year
+                      </label>
+                      <select
+                        value={financialYear}
+                        onChange={(e) => setFinancialYear(e.target.value)}
+                        className="w-full h-10 px-3 border border-[#E5E7EB] rounded-xl text-xs sm:text-sm outline-none focus:border-[#005B4F] bg-white cursor-pointer"
+                      >
+                        {FINANCIAL_YEARS.map((fy) => (
+                          <option key={fy} value={fy}>{fy}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                ) : (
+                  /* Standard Workspace Name for personal / family */
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-bold text-[#6B7280]">Workspace Name</label>
+                    <input
+                      type="text"
+                      value={customName}
+                      onChange={(e) => setCustomName(e.target.value)}
+                      placeholder={selectedType === "family" ? "My Family" : "Personal Finance"}
+                      className="w-full h-10 px-3.5 border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#005B4F]"
+                    />
+                  </div>
+                )}
 
                 {/* Invite Members (Optional) */}
                 {selectedType !== "personal" && (
@@ -1019,28 +1525,18 @@ export default function Settings() {
                   </label>
                 </div>
 
-                {/* Buttons: Back & Submit */}
-                <div className="pt-3 flex items-center justify-between gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setModalStep(1)}
-                    className="px-4 py-2.5 text-xs font-bold text-gray-600 hover:text-gray-900 rounded-xl hover:bg-gray-100 transition-colors cursor-pointer"
-                  >
-                    ← Back
-                  </button>
-
+                {/* Submit Button */}
+                <div className="pt-3 flex items-center justify-end">
                   <button
                     type="button"
                     onClick={handleCreateWorkspace}
                     disabled={isCreatingWorkspace}
-                    className="flex-1 max-w-[260px] h-11 bg-[#005B4F] hover:bg-[#004A40] text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-md shadow-[#005B4F]/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                    className="w-full sm:w-auto px-6 h-11 bg-[#005B4F] hover:bg-[#004A40] text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-md shadow-[#005B4F]/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                   >
                     {isCreatingWorkspace ? (
                       <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                     ) : (
-                      <>
-                        <span>Create {selectedType === "family" ? "Family" : selectedType === "business" ? "Business" : "Personal"} Workspace</span>
-                      </>
+                      <span>Create {selectedType === "family" ? "Family" : selectedType === "business" ? "Business" : "Personal"} Workspace</span>
                     )}
                   </button>
                 </div>

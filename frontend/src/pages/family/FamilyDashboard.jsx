@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import {
-  Wallet,
+  WalletCards,
   TrendingUp,
   TrendingDown,
   Target,
@@ -63,30 +63,24 @@ const getCategoryMeta = (catName) => {
   return { icon: MoreHorizontal, color: "#6B7280" };
 };
 
-// Helper for SVG Donut Chart with dynamic real slices & center total text
-function DonutChart({ data = [], totalAmount = 0, size = 150, innerRadius = 40, outerRadius = 60 }) {
+// Helper for SVG Donut Chart with dynamic real slices
+function DonutChart({ data = [], size = 135, innerRadius = 36, outerRadius = 58 }) {
   const total = data.reduce((sum, d) => sum + (Number(d.amount) || 0), 0);
   const center = size / 2;
 
   // Empty state placeholder donut
   if (total === 0 || data.length === 0) {
     return (
-      <div className="relative flex items-center justify-center shrink-0">
-        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="shrink-0 drop-shadow-xs">
-          <circle
-            cx={center}
-            cy={center}
-            r={(outerRadius + innerRadius) / 2}
-            fill="none"
-            stroke="#F3F4F6"
-            strokeWidth={outerRadius - innerRadius}
-          />
-        </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center">
-          <span className="text-sm font-black text-[#111827] leading-none">₹0</span>
-          <span className="text-[10px] font-medium text-[#6B7280] mt-0.5">Total</span>
-        </div>
-      </div>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="shrink-0 drop-shadow-xs">
+        <circle
+          cx={center}
+          cy={center}
+          r={(outerRadius + innerRadius) / 2}
+          fill="none"
+          stroke="#F3F4F6"
+          strokeWidth={outerRadius - innerRadius}
+        />
+      </svg>
     );
   }
 
@@ -125,25 +119,16 @@ function DonutChart({ data = [], totalAmount = 0, size = 150, innerRadius = 40, 
   });
 
   return (
-    <div className="relative flex items-center justify-center shrink-0">
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="shrink-0 drop-shadow-xs">
-        {slices.map((slice, i) => (
-          <path
-            key={i}
-            d={slice.pathData}
-            fill={slice.color}
-            className="transition-all duration-300 hover:opacity-90 cursor-pointer"
-          />
-        ))}
-      </svg>
-      {/* Center Text */}
-      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center">
-        <span className="text-sm font-black text-[#111827] leading-none">
-          {formatCurrency(totalAmount || total)}
-        </span>
-        <span className="text-[10px] font-medium text-[#6B7280] mt-0.5">Total</span>
-      </div>
-    </div>
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="shrink-0 drop-shadow-xs">
+      {slices.map((slice, i) => (
+        <path
+          key={i}
+          d={slice.pathData}
+          fill={slice.color}
+          className="transition-all duration-300 hover:opacity-90 cursor-pointer"
+        />
+      ))}
+    </svg>
   );
 }
 
@@ -668,7 +653,8 @@ export default function FamilyDashboard() {
     const hour = new Date().getHours();
     if (hour < 12) return "Good morning";
     if (hour < 17) return "Good afternoon";
-    return "Good evening";
+    if (hour < 21) return "Good evening";
+    return "Good night";
   }, []);
 
   const currentMonthYear = useMemo(() => {
@@ -683,19 +669,13 @@ export default function FamilyDashboard() {
     goalsSaved: 0,
   });
 
-  // Raw streams for Cash Flow
+  // Raw streams for Cash Flow & Dynamic Filtering
   const [rawIncomes, setRawIncomes] = useState([]);
   const [rawExpenses, setRawExpenses] = useState([]);
   const [rawTransactions, setRawTransactions] = useState([]);
 
-  // Expense Categories for Donut Chart (Dynamic from DB)
-  const [categories, setCategories] = useState([]);
-
   // Loans & EMI List (Dynamic from DB)
   const [loans, setLoans] = useState([]);
-
-  // Recent Transactions List (Dynamic from DB)
-  const [recentTransactions, setRecentTransactions] = useState([]);
 
   // Savings Goals List (Dynamic from DB)
   const [savingsGoals, setSavingsGoals] = useState([]);
@@ -707,6 +687,132 @@ export default function FamilyDashboard() {
     sharedExpenses: 0,
     activeGoals: 0,
   });
+
+  // ─── DYNAMIC TIMEFRAME FILTER ENGINE ────────────────────────────
+  const dateRange = useMemo(() => {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+
+    if (timeFilter === "This Month") {
+      const start = new Date(currentYear, currentMonth, 1, 0, 0, 0, 0);
+      const end = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59, 999);
+      const label = now.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+      return { start, end, label: `for ${label}` };
+    }
+
+    if (timeFilter === "Last Month") {
+      const start = new Date(currentYear, currentMonth - 1, 1, 0, 0, 0, 0);
+      const end = new Date(currentYear, currentMonth, 0, 23, 59, 59, 999);
+      const label = start.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+      return { start, end, label: `for ${label}` };
+    }
+
+    if (timeFilter === "Last 3 Months") {
+      const start = new Date(currentYear, currentMonth - 2, 1, 0, 0, 0, 0);
+      const end = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59, 999);
+      const startMo = start.toLocaleDateString("en-US", { month: "short" });
+      const endMo = now.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+      return { start, end, label: `for the last 3 months (${startMo} – ${endMo})` };
+    }
+
+    if (timeFilter === "This Year") {
+      const start = new Date(currentYear, 0, 1, 0, 0, 0, 0);
+      const end = new Date(currentYear, 11, 31, 23, 59, 59, 999);
+      return { start, end, label: `for ${currentYear}` };
+    }
+
+    return { start: new Date(0), end: new Date(8640000000000000), label: "" };
+  }, [timeFilter]);
+
+  const isWithinRange = (dateVal, start, end) => {
+    if (!dateVal) return false;
+    const d = new Date(dateVal);
+    return !isNaN(d.getTime()) && d >= start && d <= end;
+  };
+
+  // Filtered raw streams based on active timeframe
+  const filteredIncomes = useMemo(() => {
+    return rawIncomes.filter((i) => isWithinRange(i.date, dateRange.start, dateRange.end));
+  }, [rawIncomes, dateRange]);
+
+  const filteredExpenses = useMemo(() => {
+    return rawExpenses.filter((e) => isWithinRange(e.date, dateRange.start, dateRange.end));
+  }, [rawExpenses, dateRange]);
+
+  // Recalculated family metrics
+  const effectiveIncome = useMemo(() => {
+    return filteredIncomes.reduce((s, i) => s + (Number(i.amount) || 0), 0);
+  }, [filteredIncomes]);
+
+  const effectiveExpenses = useMemo(() => {
+    return filteredExpenses.reduce((s, e) => s + (Number(e.amount) || 0), 0);
+  }, [filteredExpenses]);
+
+  const effectiveBalance = useMemo(() => {
+    return stats.totalBalance || (effectiveIncome - effectiveExpenses);
+  }, [stats.totalBalance, effectiveIncome, effectiveExpenses]);
+
+  const effectiveSharedExpenses = useMemo(() => {
+    return filteredExpenses
+      .filter((e) => e.isShared)
+      .reduce((s, e) => s + (Number(e.amount) || 0), 0);
+  }, [filteredExpenses]);
+
+  // Dynamic Categories Breakdown based on active timeframe
+  const categories = useMemo(() => {
+    const catMap = {};
+    filteredExpenses.forEach((e) => {
+      const c = e.category || "Other";
+      catMap[c] = (catMap[c] || 0) + (Number(e.amount) || 0);
+    });
+
+    const colors = ["#10B981", "#F43F5E", "#F59E0B", "#3B82F6", "#8B5CF6", "#EC4899", "#14B8A6", "#06B6D4"];
+    return Object.entries(catMap)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([name, amount], idx) => ({
+        name,
+        amount,
+        percentage: effectiveExpenses > 0 ? Math.round((amount / effectiveExpenses) * 100) : 0,
+        color: colors[idx % colors.length],
+      }));
+  }, [filteredExpenses, effectiveExpenses]);
+
+  // Dynamic Recent Activity based on active timeframe
+  const recentTransactions = useMemo(() => {
+    const allActivity = [
+      ...filteredIncomes.map((i) => ({
+        id: i.id || `inc_${i.title}`,
+        title: i.title,
+        subtitle: i.category,
+        category: i.category,
+        date: i.date ? new Date(i.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "Recent",
+        rawDate: new Date(i.date || 0),
+        amount: i.amount,
+        type: "income",
+        icon: TrendingUp,
+        iconBg: "bg-emerald-50 text-emerald-600",
+      })),
+      ...filteredExpenses.map((e) => {
+        const meta = getCategoryMeta(e.category);
+        return {
+          id: e.id || `exp_${e.title}`,
+          title: e.title,
+          subtitle: e.isShared ? `Shared by ${e.paidBy || "Family"}` : e.paymentMethod || e.category,
+          category: e.category,
+          date: e.date ? new Date(e.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "Recent",
+          rawDate: new Date(e.date || 0),
+          amount: e.amount,
+          type: "expense",
+          icon: meta.icon,
+          iconBg: "bg-rose-50 text-rose-500",
+        };
+      }),
+    ].sort((a, b) => b.rawDate - a.rawDate);
+
+    return allActivity.slice(0, 5);
+  }, [filteredIncomes, filteredExpenses]);
 
   useEffect(() => {
     loadData();
@@ -743,6 +849,7 @@ export default function FamilyDashboard() {
         expRes,
         incRes,
         txnRes,
+        contribRes,
       ] = await Promise.allSettled([
         fetch(`${API}/family/members`, { headers: h }),
         fetch(`${API}/workspace/settlements?workspace=family`, { headers: h }),
@@ -752,7 +859,8 @@ export default function FamilyDashboard() {
         fetch(`${API}/loans?workspace=family`, { headers: h }),
         fetch(`${API}/expenses?workspace=family`, { headers: h }),
         fetch(`${API}/incomes?workspace=family`, { headers: h }),
-        fetch(`${API}/transactions?module=family&limit=50`, { headers: h }),
+        fetch(`${API}/transactions?module=family&limit=100`, { headers: h }),
+        fetch(`${API}/family/contributions`, { headers: h }),
       ]);
 
       let memberCount = 0;
@@ -783,9 +891,11 @@ export default function FamilyDashboard() {
       }
 
       // 3. Shared Splits
+      let loadedSplits = [];
       if (splitRes.status === "fulfilled" && splitRes.value.ok) {
         const splits = await splitRes.value.json();
         if (Array.isArray(splits)) {
+          loadedSplits = splits;
           sharedExpenses = splits.reduce((sum, s) => sum + (Number(s.totalAmount) || 0), 0);
         }
       }
@@ -819,68 +929,169 @@ export default function FamilyDashboard() {
         setSavingsGoals([]);
       }
 
-      // 5. Incomes
+      // 5. Raw Transactions
+      let loadedTxns = [];
+      if (txnRes.status === "fulfilled" && txnRes.value.ok) {
+        const txnData = await txnRes.value.json();
+        loadedTxns = txnData.transactions || (Array.isArray(txnData) ? txnData : []);
+      }
+
+      // 6. Direct Incomes & Contributions
       let loadedIncomes = [];
       if (incRes.status === "fulfilled" && incRes.value.ok) {
         const incData = await incRes.value.json();
-        if (Array.isArray(incData)) {
-          loadedIncomes = incData;
-          totalIncome = incData.reduce((s, i) => s + (Number(i.amount) || 0), 0);
-          setRawIncomes(incData);
-        }
+        if (Array.isArray(incData)) loadedIncomes = incData;
       }
 
-      // 6. Expenses & Categories
+      let loadedContributions = [];
+      if (contribRes.status === "fulfilled" && contribRes.value.ok) {
+        const contribData = await contribRes.value.json();
+        if (Array.isArray(contribData)) loadedContributions = contribData;
+      }
+
+      // Unified Incomes Calculation & Deduplication
+      const allIncomesList = [];
+      const seenIncKeys = new Set();
+
+      loadedIncomes.forEach((i) => {
+        const amt = Math.abs(Number(i.amount) || 0);
+        const key = `inc_${i._id || `${(i.title || "").toLowerCase()}_${amt}`}`;
+        if (!seenIncKeys.has(key)) {
+          seenIncKeys.add(key);
+          allIncomesList.push({
+            id: i._id,
+            title: i.title || "Family Income",
+            amount: amt,
+            category: i.category || i.source || "Income",
+            date: i.date ? new Date(i.date) : new Date(),
+          });
+        }
+      });
+
+      loadedContributions.forEach((c) => {
+        const amt = Math.abs(Number(c.amount) || 0);
+        const key = `contrib_${c._id || `${(c.memberName || "").toLowerCase()}_${amt}`}`;
+        if (!seenIncKeys.has(key)) {
+          seenIncKeys.add(key);
+          allIncomesList.push({
+            id: c._id,
+            title: `Contribution (${c.memberName || "Member"})`,
+            amount: amt,
+            category: "Contribution",
+            date: c.date ? new Date(c.date) : new Date(),
+          });
+        }
+      });
+
+      loadedTxns
+        .filter((t) => t.type === "income" || (Number(t.amount) > 0 && t.type !== "expense"))
+        .forEach((t) => {
+          const amt = Math.abs(Number(t.amount) || 0);
+          const key = `txn_inc_${t._id || `${(t.title || "").toLowerCase()}_${amt}`}`;
+          if (!seenIncKeys.has(key)) {
+            seenIncKeys.add(key);
+            allIncomesList.push({
+              id: t._id,
+              title: t.title || "Family Income",
+              amount: amt,
+              category: t.category || "Income",
+              date: t.date ? new Date(t.date) : new Date(),
+            });
+          }
+        });
+
+      totalIncome = allIncomesList.reduce((s, i) => s + i.amount, 0);
+      setRawIncomes(allIncomesList);
+
+      // 7. Direct Expenses, Shared Splits, and Family Transactions
       let loadedExpenses = [];
       if (expRes.status === "fulfilled" && expRes.value.ok) {
         const expData = await expRes.value.json();
-        if (Array.isArray(expData)) {
-          loadedExpenses = expData;
-          totalExpenses = expData.reduce((s, e) => s + (Number(e.amount) || 0), 0);
-          setRawExpenses(expData);
-
-          // Group by category dynamically from real database expenses
-          const catMap = {};
-          expData.forEach((e) => {
-            const c = e.category || "Other";
-            catMap[c] = (catMap[c] || 0) + (Number(e.amount) || 0);
-          });
-
-          const catEntries = Object.entries(catMap)
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, 5)
-            .map(([name, amount]) => {
-              const meta = getCategoryMeta(name);
-              return {
-                name,
-                amount,
-                percentage: totalExpenses > 0 ? Math.round((amount / totalExpenses) * 100) : 0,
-                color: meta.color,
-                icon: meta.icon,
-              };
-            });
-
-          setCategories(catEntries);
-        } else {
-          setCategories([]);
-        }
-      } else {
-        setCategories([]);
+        if (Array.isArray(expData)) loadedExpenses = expData;
       }
 
-      // 7. Accounts & Total Balance (deduct shared/split expenses from balance)
+      // Unified Expenses Calculation & Deduplication
+      const allExpensesList = [];
+      const seenExpKeys = new Set();
+
+      // Priority 1: Direct Expenses
+      loadedExpenses.forEach((e) => {
+        const amt = Math.abs(Number(e.amount) || 0);
+        const key = `exp_${e._id || `${(e.title || "").toLowerCase()}_${amt}`}`;
+        const titleKey = `title_${(e.title || "").toLowerCase().trim()}_${amt}`;
+        if (!seenExpKeys.has(key) && !seenExpKeys.has(titleKey)) {
+          seenExpKeys.add(key);
+          seenExpKeys.add(titleKey);
+          allExpensesList.push({
+            id: e._id,
+            title: e.title || "Family Expense",
+            amount: amt,
+            category: e.category || "General",
+            date: e.date ? new Date(e.date) : new Date(),
+            paymentMethod: e.paymentMethod || "Bank Transfer",
+          });
+        }
+      });
+
+      // Priority 2: Shared Split Expenses
+      loadedSplits.forEach((s) => {
+        const amt = Math.abs(Number(s.totalAmount) || 0);
+        const key = `split_${s._id || `${(s.title || "").toLowerCase()}_${amt}`}`;
+        const titleKey = `title_${(s.title || "").toLowerCase().trim()}_${amt}`;
+        if (!seenExpKeys.has(key) && !seenExpKeys.has(titleKey)) {
+          seenExpKeys.add(key);
+          seenExpKeys.add(titleKey);
+          allExpensesList.push({
+            id: s._id,
+            title: s.title || "Shared Expense",
+            amount: amt,
+            category: s.category || "Household",
+            date: s.date || s.createdAt ? new Date(s.date || s.createdAt) : new Date(),
+            paymentMethod: s.paymentMethod || "Group Split",
+            isShared: true,
+            paidBy: s.paidBy,
+          });
+        }
+      });
+
+      // Priority 3: Transactions of type expense
+      loadedTxns
+        .filter((t) => t.type === "expense" || Number(t.amount) < 0)
+        .forEach((t) => {
+          const amt = Math.abs(Number(t.amount) || 0);
+          const cleanTitle = (t.title || "").replace(/^Shared:\s*/i, "").toLowerCase().trim();
+          const key = `txn_${t._id || `${cleanTitle}_${amt}`}`;
+          const titleKey = `title_${cleanTitle}_${amt}`;
+          if (!seenExpKeys.has(key) && !seenExpKeys.has(titleKey)) {
+            seenExpKeys.add(key);
+            seenExpKeys.add(titleKey);
+            allExpensesList.push({
+              id: t._id,
+              title: t.title || "Family Expense",
+              amount: amt,
+              category: t.category || "General",
+              date: t.date ? new Date(t.date) : new Date(),
+              paymentMethod: t.paymentMethod || "UPI",
+            });
+          }
+        });
+
+      totalExpenses = allExpensesList.reduce((s, e) => s + e.amount, 0);
+      setRawExpenses(allExpensesList);
+
+      // 8. Accounts & Total Balance
       if (accRes.status === "fulfilled" && accRes.value.ok) {
         const accounts = await accRes.value.json();
         if (Array.isArray(accounts) && accounts.length > 0) {
-          totalBalance = accounts.reduce((s, a) => s + (Number(a.balance) || 0), 0) - sharedExpenses;
+          totalBalance = accounts.reduce((s, a) => s + (Number(a.balance) || 0), 0);
         } else {
-          totalBalance = totalIncome - totalExpenses - sharedExpenses;
+          totalBalance = totalIncome - totalExpenses;
         }
       } else {
-        totalBalance = totalIncome - totalExpenses - sharedExpenses;
+        totalBalance = totalIncome - totalExpenses;
       }
 
-      // 8. Loans & EMI
+      // 9. Loans & EMI
       if (loanRes.status === "fulfilled" && loanRes.value.ok) {
         const loanList = await loanRes.value.json();
         if (Array.isArray(loanList)) {
@@ -931,71 +1142,8 @@ export default function FamilyDashboard() {
         setLoans([]);
       }
 
-      // 9. Recent Transactions
-      if (txnRes.status === "fulfilled" && txnRes.value.ok) {
-        const txnData = await txnRes.value.json();
-        const txns = txnData.transactions || (Array.isArray(txnData) ? txnData : []);
-        setRawTransactions(txns);
-
-        if (txns.length > 0) {
-          setRecentTransactions(
-            txns.slice(0, 5).map((t) => {
-              const meta = getCategoryMeta(t.category);
-              const isInc = t.type === "income" || (Number(t.amount) > 0 && t.type !== "expense");
-              return {
-                id: t._id,
-                title: t.title || "Family Transaction",
-                subtitle: t.paymentMethod || t.notes || (isInc ? "Family Income" : "Family Expense"),
-                category: t.category || "General",
-                date: t.date
-                  ? new Date(t.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
-                  : "Recent",
-                amount: Math.abs(Number(t.amount) || 0),
-                type: isInc ? "income" : "expense",
-                icon: isInc ? TrendingUp : meta.icon,
-                iconBg: isInc ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-500",
-              };
-            })
-          );
-        } else if (loadedExpenses.length > 0 || loadedIncomes.length > 0) {
-          // Construct from direct loaded expenses and incomes if transaction collection is empty
-          const fallbackTxns = [
-            ...loadedIncomes.map((i) => ({
-              id: i._id,
-              title: i.title || "Family Income",
-              subtitle: i.account || "Income",
-              category: i.category || "Income",
-              date: i.date ? new Date(i.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "Recent",
-              amount: Number(i.amount) || 0,
-              type: "income",
-              icon: TrendingUp,
-              iconBg: "bg-emerald-50 text-emerald-600",
-              rawDate: new Date(i.date || 0),
-            })),
-            ...loadedExpenses.map((e) => {
-              const meta = getCategoryMeta(e.category);
-              return {
-                id: e._id,
-                title: e.title || "Family Expense",
-                subtitle: e.paymentMethod || "Expense",
-                category: e.category || "General",
-                date: e.date ? new Date(e.date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "Recent",
-                amount: Number(e.amount) || 0,
-                type: "expense",
-                icon: meta.icon,
-                iconBg: "bg-rose-50 text-rose-500",
-                rawDate: new Date(e.date || 0),
-              };
-            }),
-          ].sort((a, b) => b.rawDate - a.rawDate);
-
-          setRecentTransactions(fallbackTxns.slice(0, 5));
-        } else {
-          setRecentTransactions([]);
-        }
-      } else {
-        setRecentTransactions([]);
-      }
+      // 10. Recent Activity
+      setRawTransactions(loadedTxns.length > 0 ? loadedTxns : [...allIncomesList, ...allExpensesList]);
 
       setStats({
         totalBalance,
@@ -1030,10 +1178,9 @@ export default function FamilyDashboard() {
         <div>
           <h1 className="text-2xl sm:text-[28px] font-extrabold text-[#111827] tracking-tight flex items-center gap-2">
             <span>{greeting}, {firstName}!</span>
-            <span className="text-2xl select-none">👋</span>
           </h1>
           <p className="text-xs sm:text-sm font-medium text-[#6B7280] mt-1">
-            Here's your family financial overview for {currentMonthYear}
+            Here's your family financial overview {dateRange.label}
           </p>
         </div>
 
@@ -1074,12 +1221,12 @@ export default function FamilyDashboard() {
         {/* Card 1: TOTAL BALANCE */}
         <div className="bg-white rounded-2xl border border-[#E5E7EB] p-5 flex items-center gap-4 hover:shadow-sm transition-all">
           <div className="w-12 h-12 rounded-xl bg-[#E6F5F1] text-[#00796B] flex items-center justify-center shrink-0 shadow-xs">
-            <Wallet className="w-6 h-6" />
+            <WalletCards className="w-6 h-6" />
           </div>
           <div>
             <p className="text-[11px] font-bold text-[#6B7280] uppercase tracking-wider">TOTAL BALANCE</p>
             <p className="text-2xl font-extrabold text-[#00695C] tracking-tight mt-0.5">
-              {loading ? "—" : formatCurrency(stats.totalBalance)}
+              {loading ? "—" : formatCurrency(effectiveBalance)}
             </p>
           </div>
         </div>
@@ -1092,7 +1239,7 @@ export default function FamilyDashboard() {
           <div>
             <p className="text-[11px] font-bold text-[#6B7280] uppercase tracking-wider">TOTAL INCOME</p>
             <p className="text-2xl font-extrabold text-[#009B70] tracking-tight mt-0.5">
-              {loading ? "—" : formatCurrency(stats.totalIncome)}
+              {loading ? "—" : formatCurrency(effectiveIncome)}
             </p>
           </div>
         </div>
@@ -1105,7 +1252,7 @@ export default function FamilyDashboard() {
           <div>
             <p className="text-[11px] font-bold text-[#6B7280] uppercase tracking-wider">TOTAL EXPENSES</p>
             <p className="text-2xl font-extrabold text-[#E53935] tracking-tight mt-0.5">
-              {loading ? "—" : formatCurrency(stats.totalExpenses)}
+              {loading ? "—" : formatCurrency(effectiveExpenses)}
             </p>
           </div>
         </div>
@@ -1143,8 +1290,8 @@ export default function FamilyDashboard() {
 
             {categories.length === 0 ? (
               <div className="py-10 flex flex-col items-center justify-center text-center">
-                <DonutChart data={[]} totalAmount={0} size={135} innerRadius={36} outerRadius={56} />
-                <p className="text-xs text-gray-500 font-medium mt-3">No expenses recorded yet</p>
+                <DonutChart data={[]} size={135} innerRadius={36} outerRadius={58} />
+                <p className="text-xs text-gray-500 font-medium mt-3">No expenses recorded for {timeFilter.toLowerCase()}</p>
                 <Link
                   to="/app/family/transactions"
                   className="mt-2 text-xs font-bold text-[#005B4F] hover:underline"
@@ -1157,29 +1304,28 @@ export default function FamilyDashboard() {
                 {/* Donut Chart */}
                 <DonutChart
                   data={categories}
-                  totalAmount={stats.totalExpenses}
                   size={135}
                   innerRadius={36}
-                  outerRadius={56}
+                  outerRadius={58}
                 />
 
                 {/* Category Breakdown List */}
-                <div className="space-y-2 flex-1 pl-2">
-                  {categories.map((cat, idx) => {
-                    const CatIcon = cat.icon;
-                    return (
-                      <div key={idx} className="flex items-center justify-between text-xs">
-                        <div className="flex items-center gap-2">
-                          <CatIcon className="w-3.5 h-3.5" style={{ color: cat.color }} />
-                          <span className="font-semibold text-[#374151]">{cat.name}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-[#111827]">₹{cat.amount.toLocaleString()}</span>
-                          <span className="text-[#9CA3AF] text-[11px] w-7 text-right">{cat.percentage}%</span>
-                        </div>
+                <div className="space-y-1.5 flex-1 pl-2">
+                  {categories.map((cat, idx) => (
+                    <div key={idx} className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="w-2.5 h-2.5 rounded-full shrink-0"
+                          style={{ backgroundColor: cat.color }}
+                        />
+                        <span className="font-semibold text-[#374151]">{cat.name}</span>
                       </div>
-                    );
-                  })}
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-[#111827]">₹{cat.amount.toLocaleString()}</span>
+                        <span className="text-[#9CA3AF] text-[11px] w-7 text-right">{cat.percentage}%</span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
@@ -1188,8 +1334,8 @@ export default function FamilyDashboard() {
           {/* Bottom Highlight Card: Top Spending Category */}
           <div className="bg-[#FFFBEB] border border-[#FEF3C7] rounded-xl p-3 flex items-center justify-between mt-4">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-[#FEF3C7] text-amber-500 flex items-center justify-center shrink-0">
-                <Star className="w-4 h-4 fill-amber-400 text-amber-500" />
+              <div className="w-8 h-8 rounded-lg bg-[#FEF3C7] text-amber-600 flex items-center justify-center shrink-0">
+                <UtensilsCrossed className="w-4 h-4" />
               </div>
               <div>
                 <p className="text-[11px] font-medium text-[#6B7280]">Top spending category</p>
@@ -1305,7 +1451,7 @@ export default function FamilyDashboard() {
                 <div className="w-10 h-10 rounded-xl bg-gray-100 text-gray-400 flex items-center justify-center mb-2">
                   <ReceiptIndianRupee className="w-5 h-5" />
                 </div>
-                <p className="text-xs font-semibold text-gray-700">No transactions recorded</p>
+                <p className="text-xs font-semibold text-gray-700">No transactions recorded for {timeFilter.toLowerCase()}</p>
                 <p className="text-[11px] text-gray-400 mt-0.5">Record expenses, shared bills or income</p>
                 <Link
                   to="/app/family/transactions"
@@ -1435,7 +1581,7 @@ export default function FamilyDashboard() {
             <h2 className="text-base font-bold text-[#111827] tracking-tight mb-4">Family Snapshot</h2>
 
             {/* 2x2 Grid of Metrics */}
-            <div className="grid grid-cols-2 gap-3 mb-4">
+            <div className="grid grid-cols-2 gap-3">
               {/* Mini Card 1: Family Members */}
               <div className="bg-[#F8FAFC] border border-[#E5E7EB]/80 rounded-2xl p-3.5 flex items-center gap-3">
                 <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
@@ -1469,7 +1615,7 @@ export default function FamilyDashboard() {
                 </div>
                 <div>
                   <p className="text-base font-extrabold text-[#111827] leading-tight">
-                    {loading ? "—" : `₹${snapshot.sharedExpenses.toLocaleString()}`}
+                    {loading ? "—" : `₹${effectiveSharedExpenses.toLocaleString()}`}
                   </p>
                   <p className="text-[10px] font-semibold text-[#6B7280] mt-0.5">Shared Expenses</p>
                 </div>
@@ -1487,17 +1633,6 @@ export default function FamilyDashboard() {
                   <p className="text-[10px] font-semibold text-[#6B7280] mt-0.5">Active Goals</p>
                 </div>
               </div>
-            </div>
-          </div>
-
-          {/* Bottom Inspirational Banner */}
-          <div className="bg-[#EBF7F2] border border-[#D1F0E4] rounded-2xl p-3.5 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#005B4F] text-white flex items-center justify-center shrink-0 shadow-xs">
-              <Users className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="text-xs font-bold text-[#005B4F]">Growing stronger together</p>
-              <p className="text-[11px] text-[#4B5563] mt-0.5">One step closer to your financial goals!</p>
             </div>
           </div>
         </div>

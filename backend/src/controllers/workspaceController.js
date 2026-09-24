@@ -54,6 +54,51 @@ const projectController = createCrudController(Project, "Project");
 const vendorController = createCrudController(Vendor, "Vendor");
 const reimbursementController = createCrudController(Reimbursement, "Reimbursement");
 
+// Custom validation for Vendor: contact must be exactly 10 digits if provided
+vendorController.create = async (req, res) => {
+  try {
+    const rawContact = req.body.contact ? String(req.body.contact).trim() : "";
+    const cleanContact = rawContact.replace(/\D/g, "");
+
+    if (rawContact && cleanContact.length !== 10) {
+      return res.status(400).json({ message: "Contact number must be exactly 10 digits" });
+    }
+
+    const item = await Vendor.create({
+      ...req.body,
+      contact: cleanContact || rawContact,
+      userId: req.user.id,
+    });
+    res.status(201).json(item);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+vendorController.update = async (req, res) => {
+  try {
+    const updateData = { ...req.body };
+    if (updateData.contact !== undefined) {
+      const rawContact = updateData.contact ? String(updateData.contact).trim() : "";
+      const cleanContact = rawContact.replace(/\D/g, "");
+      if (rawContact && cleanContact.length !== 10) {
+        return res.status(400).json({ message: "Contact number must be exactly 10 digits" });
+      }
+      updateData.contact = cleanContact;
+    }
+
+    const item = await Vendor.findOneAndUpdate(
+      { _id: req.params.id, userId: req.user.id },
+      updateData,
+      { new: true, runValidators: true }
+    );
+    if (!item) return res.status(404).json({ message: "Vendor not found" });
+    res.json(item);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // Extra: Mark settlement as settled
 settlementController.markSettled = async (req, res) => {
   try {
@@ -67,13 +112,49 @@ settlementController.markSettled = async (req, res) => {
   } catch (error) { res.status(500).json({ message: error.message }); }
 };
 
-// Extra: Add contributor to family goal
+// Extra: Add contributor to family goal (with bank deduction & transaction sync)
+const Account = require("../models/Account");
+const Transaction = require("../models/Transaction");
+
 familyGoalController.addContributor = async (req, res) => {
   try {
     const goal = await FamilyGoal.findOne({ _id: req.params.id, userId: req.user.id });
     if (!goal) return res.status(404).json({ message: "Goal not found" });
-    const { name, amount } = req.body;
-    goal.contributors.push({ name, amount, date: new Date() });
+
+    const { name, amount, account, note } = req.body;
+    const numAmount = Number(amount) || 0;
+
+    let transaction = null;
+
+    // If a bank account is selected, deduct balance and record transaction
+    if (account && account.trim() !== "" && account !== "Manual / Cash (No deduction)") {
+      await Account.findOneAndUpdate(
+        { userId: req.user.id, name: account },
+        { $inc: { balance: -numAmount } }
+      );
+
+      transaction = await Transaction.create({
+        userId: req.user.id,
+        title: `Deposit: ${goal.name}`,
+        type: "expense",
+        amount: numAmount,
+        category: "Savings & Investments",
+        date: new Date(),
+        paymentMethod: account,
+        module: "family",
+        status: "Completed",
+        notes: note ? `${note} (Family Goal: ${goal.name})` : `Family Goal deposit for "${goal.name}"`,
+      });
+    }
+
+    goal.contributors.push({
+      name: name || "",
+      amount: numAmount,
+      account: account || "",
+      note: note || "",
+      transactionId: transaction ? transaction._id : null,
+      date: new Date(),
+    });
     goal.currentAmount = goal.contributors.reduce((s, c) => s + c.amount, 0);
     await goal.save();
     res.json(goal);

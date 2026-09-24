@@ -28,7 +28,7 @@ export default function Departments() {
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div><h1 className="text-2xl font-bold text-[#1F2937]">Departments</h1><p className="text-sm text-[#6B7280] mt-0.5">Manage departments and budgets</p></div>
-        <button onClick={() => { setEditItem(null); setForm({ name: "", budget: "" }); setShowForm(true); }} className="flex items-center gap-2 px-4 py-2.5 bg-[#1E232A] text-white text-sm font-semibold rounded-xl hover:bg-[#15191E] shadow-lg shadow-[#1E232A]/20"><Plus className="w-4 h-4" /> Add Department</button>
+        <button onClick={() => { setEditItem(null); setForm({ name: "", budget: "" }); setShowForm(true); }} className="flex items-center gap-2 px-4 py-2.5 bg-[#005B4F] text-white text-sm font-semibold rounded-xl hover:bg-[#004A40] shadow-md shadow-[#005B4F]/20 transition-all active:scale-[0.98] cursor-pointer"><Plus className="w-4 h-4" /> Add Department</button>
       </div>
 
       {loading ? <div className="text-center py-8 text-sm text-gray-400">Loading...</div> :
@@ -63,9 +63,9 @@ export default function Departments() {
           <div className="bg-white rounded-2xl shadow-2xl border w-full max-w-lg p-6" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5"><h2 className="text-lg font-bold">{editItem ? "Edit" : "Add"} Department</h2><button onClick={() => setShowForm(false)} className="p-1.5 rounded-lg hover:bg-gray-100"><X className="w-4 h-4" /></button></div>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <input type="text" placeholder="Department Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required className="w-full h-11 px-4 border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#1E232A]" />
-              <input type="number" placeholder="Budget" value={form.budget} onChange={(e) => setForm({ ...form, budget: e.target.value })} min="0" className="w-full h-11 px-4 border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#1E232A]" />
-              <button type="submit" className="w-full h-12 bg-[#1E232A] text-white text-sm font-semibold rounded-xl hover:bg-[#15191E]">{editItem ? "Update" : "Add"}</button>
+              <input type="text" placeholder="Department Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required className="w-full h-11 px-4 border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#005B4F]" />
+              <input type="number" placeholder="Budget" value={form.budget} onChange={(e) => setForm({ ...form, budget: e.target.value })} min="0" className="w-full h-11 px-4 border border-[#E5E7EB] rounded-xl text-sm outline-none focus:border-[#005B4F]" />
+              <button type="submit" className="w-full h-12 bg-[#005B4F] text-white text-sm font-semibold rounded-xl hover:bg-[#004A40] shadow-md shadow-[#005B4F]/20 transition-all">{editItem ? "Update" : "Add"}</button>
             </form>
           </div>
         </div>

@@ -522,7 +522,6 @@ export default function SharedExpenses() {
       <PageHeader
         title="Family Shared Expenses"
         subtitle="Manage shared household expenses, calculate exact member split shares, and track payment settlements."
-        badge="Family Module"
         actionButton={
           <div className="flex items-center gap-3">
             <button

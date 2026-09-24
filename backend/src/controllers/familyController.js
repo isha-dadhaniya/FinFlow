@@ -6,7 +6,10 @@ const Expense = require("../models/Expense");
 // Family Members CRUD
 const getMembers = async (req, res) => {
   try {
-    const members = await FamilyMember.find({ userId: req.user.id }).sort({ createdAt: -1 });
+    const members = await FamilyMember.find({
+      userId: req.user.id,
+      email: { $ne: "varsha@gmail.com" },
+    }).sort({ createdAt: -1 });
     res.status(200).json(members);
   } catch (error) {
     res.status(500).json({ message: error.message });

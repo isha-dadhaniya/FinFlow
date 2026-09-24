@@ -1,8 +1,43 @@
+const mongoose = require("mongoose");
 const Loan = require("../models/Loan");
 const Expense = require("../models/Expense");
 const Transaction = require("../models/Transaction");
 const Account = require("../models/Account");
 const Notification = require("../models/Notification");
+
+const escapeRegex = (string) => {
+  return string ? string.replace(/[/\-\\^$*+?.()|[\]{}]/g, "\\$&") : "";
+};
+
+// Robust helper to adjust account balance by ID, name, nickname, or bankName
+const adjustAccountForLoan = async (userId, targetAccount, deltaAmount, accountId = null) => {
+  if (!deltaAmount || (!targetAccount && !accountId)) return null;
+
+  const orConditions = [];
+  if (accountId && mongoose.Types.ObjectId.isValid(accountId)) {
+    orConditions.push({ _id: accountId });
+  }
+  if (targetAccount) {
+    if (mongoose.Types.ObjectId.isValid(targetAccount)) {
+      orConditions.push({ _id: targetAccount });
+    }
+    const escaped = escapeRegex(targetAccount);
+    orConditions.push({ name: targetAccount });
+    orConditions.push({ nickname: targetAccount });
+    orConditions.push({ bankName: targetAccount });
+    orConditions.push({ name: new RegExp(`^${escaped}$`, "i") });
+    orConditions.push({ nickname: new RegExp(`^${escaped}$`, "i") });
+    orConditions.push({ bankName: new RegExp(`^${escaped}$`, "i") });
+  }
+
+  if (orConditions.length === 0) return null;
+
+  return await Account.findOneAndUpdate(
+    { userId, $or: orConditions },
+    { $inc: { balance: deltaAmount } },
+    { new: true }
+  );
+};
 
 // Auto-Debit Engine: Evaluates all loans and auto-debits any past-due or current-due EMIs
 const processAutoDebitForLoans = async (userId, workspace) => {
@@ -36,13 +71,8 @@ const processAutoDebitForLoans = async (userId, workspace) => {
 
             const targetAccountName = loan.paymentAccount;
 
-            // 1. Deduct from bank account balance
-            if (targetAccountName) {
-              await Account.findOneAndUpdate(
-                { userId: loan.userId, name: targetAccountName },
-                { $inc: { balance: -emi.amount } }
-              );
-            }
+            // 1. Deduct from bank account balance (matches name, nickname, or bankName)
+            await adjustAccountForLoan(loan.userId, targetAccountName, -emi.amount, loan.accountId);
 
             // 2. Log in Transaction Ledger
             await Transaction.create({
@@ -112,6 +142,8 @@ const createLoan = async (req, res) => {
       startDate,
       autoDebit,
       paymentAccount,
+      accountId,
+      emiDay,
       workspace,
     } = req.body;
 
@@ -128,6 +160,7 @@ const createLoan = async (req, res) => {
     const startYear = start.getFullYear();
     const startMonth = start.getMonth();
     const startDay = start.getDate();
+    const targetEmiDay = emiDay ? Number(emiDay) : startDay;
     const now = new Date();
     const isAutoDebitEnabled = Boolean(autoDebit);
 
@@ -137,10 +170,11 @@ const createLoan = async (req, res) => {
     let initialDeductionTotal = 0;
 
     for (let i = 0; i < numTenure; i++) {
-      const dueDate = new Date(startYear, startMonth + i, startDay);
-      const isPastOrDue = dueDate <= now;
+      const dueDate = new Date(startYear, startMonth + i, targetEmiDay);
+      // An installment is past only if its day has concluded before current time
+      const isPast = new Date(dueDate).setHours(23, 59, 59, 999) < now.getTime();
 
-      if (isAutoDebitEnabled && isPastOrDue) {
+      if (isAutoDebitEnabled && isPast) {
         // Pre-mark past installments as paid right upon creation
         schedule.push({
           dueDate,
@@ -178,11 +212,8 @@ const createLoan = async (req, res) => {
     }
 
     // Deduct initial past auto-debit sum from bank account balance if any
-    if (initialDeductionTotal > 0 && paymentAccount) {
-      await Account.findOneAndUpdate(
-        { userId: req.user.id, name: paymentAccount },
-        { $inc: { balance: -initialDeductionTotal } }
-      );
+    if (initialDeductionTotal > 0) {
+      await adjustAccountForLoan(req.user.id, paymentAccount, -initialDeductionTotal, accountId);
     }
 
     const remainingEmis = numTenure - initialPaidCount;
@@ -203,7 +234,8 @@ const createLoan = async (req, res) => {
       remainingEmis,
       outstandingAmount,
       startDate: start,
-      emiDay: startDay,
+      emiDay: targetEmiDay,
+      accountId: accountId || null,
       paymentAccount: paymentAccount || "",
       autoDebit: isAutoDebitEnabled,
       emiSchedule: schedule,
@@ -248,10 +280,6 @@ const updateLoan = async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
-};
-
-const escapeRegex = (string) => {
-  return string ? string.replace(/[/\-\\^$*+?.()|[\]{}]/g, "\\$&") : "";
 };
 
 const deleteLoan = async (req, res) => {

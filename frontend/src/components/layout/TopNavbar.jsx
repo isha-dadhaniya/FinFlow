@@ -31,15 +31,37 @@ const WORKSPACE_ICONS = {
   },
   business: {
     icon: Briefcase,
-    bgColor: "bg-blue-50",
-    textColor: "text-blue-600",
-    borderColor: "border-blue-100",
+    bgColor: "bg-emerald-50",
+    textColor: "text-[#005B4F]",
+    borderColor: "border-emerald-100",
   },
 };
 
 function WorkspaceIconBadge({ modeId, size = "w-6 h-6", iconSize = "w-3.5 h-3.5" }) {
   const conf = WORKSPACE_ICONS[modeId] || WORKSPACE_ICONS.personal;
   const Icon = conf.icon;
+
+  let customLogo = null;
+  try {
+    const raw = localStorage.getItem("finflow_workspaces_config");
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed?.[modeId]?.logo || parsed?.[modeId]?.businessLogo) {
+        customLogo = parsed[modeId].logo || parsed[modeId].businessLogo;
+      }
+    }
+  } catch {
+    // ignore
+  }
+
+  if (customLogo) {
+    return (
+      <div className={`${size} rounded-full overflow-hidden border border-gray-200 shrink-0 bg-white`}>
+        <img src={customLogo} alt={modeId} className="w-full h-full object-cover" />
+      </div>
+    );
+  }
+
   return (
     <div className={`${size} rounded-full ${conf.bgColor} ${conf.textColor} ${conf.borderColor} border flex items-center justify-center shrink-0`}>
       <Icon className={iconSize} strokeWidth={2} />

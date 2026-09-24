@@ -185,7 +185,7 @@ export default function BusinessLoansEMI() {
         </div>
         <button
           onClick={handleOpenAddModal}
-          className="flex items-center gap-2 px-4 py-2.5 bg-[#1E232A] text-white text-sm font-semibold rounded-xl hover:bg-[#15191E] transition-colors shadow-lg shadow-[#1E232A]/20"
+          className="flex items-center gap-2 px-4 py-2.5 bg-[#005B4F] text-white text-sm font-semibold rounded-xl hover:bg-[#004A40] transition-all shadow-md shadow-[#005B4F]/20 active:scale-[0.98] cursor-pointer"
         >
           <Plus className="w-4 h-4" /> Add Commercial Loan
         </button>
@@ -205,7 +205,7 @@ export default function BusinessLoansEMI() {
         </div>
         <div className="bg-white rounded-2xl border border-[#E5E7EB] p-5 shadow-xs">
           <p className="text-xs font-semibold text-[#6B7280] uppercase tracking-wider">Monthly Commercial Debt Service</p>
-          <p className="text-2xl sm:text-3xl font-extrabold text-[#1E232A] mt-1">{formatCurrency(totalMonthlyEmi)}</p>
+          <p className="text-2xl sm:text-3xl font-extrabold text-[#005B4F] mt-1">{formatCurrency(totalMonthlyEmi)}</p>
           <p className="text-[11px] text-[#9CA3AF] mt-1">Due on 1st of Every Month</p>
         </div>
       </div>
@@ -223,7 +223,7 @@ export default function BusinessLoansEMI() {
             </p>
             <button
               onClick={handleOpenAddModal}
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#1E232A] text-white text-xs font-bold rounded-xl hover:bg-[#15191E]"
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#005B4F] text-white text-xs font-bold rounded-xl hover:bg-[#004A40] shadow-md shadow-[#005B4F]/20 transition-all cursor-pointer"
             >
               <Plus className="w-4 h-4" /> Add Commercial Loan
             </button>
@@ -239,7 +239,7 @@ export default function BusinessLoansEMI() {
                 <div className="p-5 sm:p-6 cursor-pointer" onClick={() => setExpanded(isExpanded ? null : loan._id)}>
                   <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
                     <div className="flex items-center gap-3.5">
-                      <div className="w-12 h-12 rounded-2xl bg-[#1E232A]/10 text-[#1E232A] flex items-center justify-center font-bold text-xl">
+                      <div className="w-12 h-12 rounded-2xl bg-[#005B4F]/10 text-[#005B4F] flex items-center justify-center font-bold text-xl">
                         🏢
                       </div>
                       <div>
@@ -277,7 +277,7 @@ export default function BusinessLoansEMI() {
                     </div>
                     <div>
                       <p className="text-[10px] font-bold uppercase text-[#6B7280]">Monthly Service</p>
-                      <p className="text-base font-extrabold text-[#1E232A]">{formatCurrency(loan.emi)}</p>
+                      <p className="text-base font-extrabold text-[#005B4F]">{formatCurrency(loan.emi)}</p>
                     </div>
                     <div>
                       <p className="text-[10px] font-bold uppercase text-[#6B7280]">Installments</p>
@@ -310,7 +310,7 @@ export default function BusinessLoansEMI() {
                                   <Check className="w-3.5 h-3.5" /> Paid & Debited
                                 </span>
                               ) : (
-                                <button onClick={() => markEmiPaid(loan._id, idx)} className="px-3.5 py-1.5 bg-[#1E232A] text-white text-xs font-bold rounded-lg hover:bg-black">
+                                <button onClick={() => markEmiPaid(loan._id, idx)} className="px-3.5 py-1.5 bg-[#005B4F] text-white text-xs font-bold rounded-lg hover:bg-[#004A40] shadow-xs cursor-pointer">
                                   Pay & Deduct Corporate Balance
                                 </button>
                               )}
@@ -359,15 +359,15 @@ export default function BusinessLoansEMI() {
                     value={form.name}
                     onChange={(e) => setForm({ ...form, name: e.target.value })}
                     required
-                    className="w-full h-11 px-3.5 border border-[#D1D5DB] rounded-xl text-sm outline-none focus:border-[#1E232A]"
+                    className="w-full h-11 px-3.5 border border-[#D1D5DB] rounded-xl text-sm outline-none focus:border-[#005B4F]"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-[#374151] uppercase tracking-wider mb-1.5">Type</label>
+                  <label className="block text-xs font-bold text-[#374151] uppercase tracking-wider mb-1.5">Facility Type</label>
                   <select
                     value={form.loanType}
                     onChange={(e) => setForm({ ...form, loanType: e.target.value })}
-                    className="w-full h-11 px-3 border border-[#D1D5DB] rounded-xl text-sm outline-none focus:border-[#1E232A] bg-white"
+                    className="w-full h-11 px-3 border border-[#D1D5DB] rounded-xl text-sm outline-none focus:border-[#005B4F] bg-white"
                   >
                     {LOAN_TYPES.map((t) => (
                       <option key={t} value={t}>{t}</option>
@@ -377,40 +377,41 @@ export default function BusinessLoansEMI() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#374151] uppercase tracking-wider mb-1.5">Lender Institution</label>
+                <label className="block text-xs font-bold text-[#374151] uppercase tracking-wider mb-1.5">Lending Institution</label>
                 <input
                   type="text"
-                  placeholder="e.g. HDFC Bank (Corporate Division)"
+                  placeholder="HDFC Bank (Commercial Branch)"
                   value={form.lender}
                   onChange={(e) => setForm({ ...form, lender: e.target.value })}
                   required
-                  className="w-full h-11 px-3.5 border border-[#D1D5DB] rounded-xl text-sm outline-none focus:border-[#1E232A]"
+                  className="w-full h-11 px-3.5 border border-[#D1D5DB] rounded-xl text-sm outline-none focus:border-[#005B4F]"
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div>
-                  <label className="block text-xs font-bold text-[#374151] uppercase tracking-wider mb-1.5">Principal (₹)</label>
+                  <label className="block text-xs font-bold text-[#374151] uppercase tracking-wider mb-1.5">Facility Principal (₹)</label>
                   <input
                     type="number"
                     placeholder="5000000"
                     value={form.principal}
                     onChange={(e) => setForm({ ...form, principal: e.target.value })}
                     required
-                    min="1000"
-                    className="w-full h-11 px-3.5 border border-[#D1D5DB] rounded-xl text-sm font-extrabold text-[#1F2937] outline-none focus:border-[#1E232A]"
+                    min="1"
+                    className="w-full h-11 px-3.5 border border-[#D1D5DB] rounded-xl text-sm font-extrabold text-[#1F2937] outline-none focus:border-[#005B4F]"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-[#374151] uppercase tracking-wider mb-1.5">Interest Rate (%)</label>
+                  <label className="block text-xs font-bold text-[#374151] uppercase tracking-wider mb-1.5">Interest Rate (% p.a.)</label>
                   <input
                     type="number"
                     step="0.01"
-                    placeholder="9.2"
+                    placeholder="9.25"
                     value={form.interestRate}
                     onChange={(e) => setForm({ ...form, interestRate: e.target.value })}
                     required
-                    className="w-full h-11 px-3.5 border border-[#D1D5DB] rounded-xl text-sm font-bold text-[#1F2937] outline-none focus:border-[#1E232A]"
+                    min="0"
+                    className="w-full h-11 px-3.5 border border-[#D1D5DB] rounded-xl text-sm font-bold text-[#1F2937] outline-none focus:border-[#005B4F]"
                   />
                 </div>
               </div>
@@ -425,17 +426,17 @@ export default function BusinessLoansEMI() {
                     onChange={(e) => setForm({ ...form, tenure: e.target.value })}
                     required
                     min="1"
-                    className="w-full h-11 px-3.5 border border-[#D1D5DB] rounded-xl text-sm font-bold text-[#1F2937] outline-none focus:border-[#1E232A]"
+                    className="w-full h-11 px-3.5 border border-[#D1D5DB] rounded-xl text-sm font-bold text-[#1F2937] outline-none focus:border-[#005B4F]"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-[#374151] uppercase tracking-wider mb-1.5">Start Date</label>
+                  <label className="block text-xs font-bold text-[#374151] uppercase tracking-wider mb-1.5">Sanction / Start Date</label>
                   <input
                     type="date"
                     value={form.startDate}
                     onChange={(e) => setForm({ ...form, startDate: e.target.value })}
                     required
-                    className="w-full h-11 px-3.5 border border-[#D1D5DB] rounded-xl text-sm outline-none focus:border-[#1E232A]"
+                    className="w-full h-11 px-3.5 border border-[#D1D5DB] rounded-xl text-sm outline-none focus:border-[#005B4F]"
                   />
                 </div>
               </div>
@@ -446,7 +447,7 @@ export default function BusinessLoansEMI() {
                   value={form.paymentAccount}
                   onChange={(e) => setForm({ ...form, paymentAccount: e.target.value })}
                   required
-                  className="w-full h-11 px-3.5 border border-[#D1D5DB] rounded-xl text-sm font-semibold outline-none focus:border-[#1E232A] bg-emerald-50/40 text-[#1F2937]"
+                  className="w-full h-11 px-3.5 border border-[#D1D5DB] rounded-xl text-sm font-semibold outline-none focus:border-[#005B4F] bg-emerald-50/40 text-[#1F2937]"
                 >
                   <option value="" disabled>Select Corporate Bank Account</option>
                   {accounts.map((acc) => (
@@ -457,26 +458,17 @@ export default function BusinessLoansEMI() {
                 </select>
               </div>
 
-              <div className="p-4 bg-gray-100 rounded-2xl flex items-center justify-between">
-                <div>
-                  <p className="text-[11px] font-bold uppercase text-gray-700">Monthly Debt Service</p>
-                  <p className="text-xl font-extrabold text-[#1F2937]">{formatCurrency(Number(form.emi))}</p>
-                </div>
-                <p className="text-xs text-[#6B7280]">Due on 1st of every month</p>
-              </div>
-
-              <div className="bg-[#F9FAFB] p-4 rounded-2xl border border-gray-200">
+              <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200">
                 <label className="flex items-start gap-3 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={form.autoDebit}
                     onChange={(e) => setForm({ ...form, autoDebit: e.target.checked })}
-                    className="w-5 h-5 rounded text-[#1E232A] mt-0.5"
+                    className="w-5 h-5 rounded text-[#005B4F] mt-0.5 accent-[#005B4F]"
                   />
                   <div>
-                    <p className="text-xs font-bold text-[#1F2937] flex items-center gap-1.5">
-                      <Zap className="w-3.5 h-3.5 text-emerald-600" />
-                      Allow Corporate Auto-Debit on 1st of every month
+                    <p className="text-xs font-bold text-[#1F2937]">
+                      Enable Automatic Corporate Balance Debit on 1st of Month
                     </p>
                     <p className="text-[11px] text-[#6B7280]">
                       {form.autoDebit
@@ -491,7 +483,7 @@ export default function BusinessLoansEMI() {
                 <button type="button" onClick={() => setShowModal(false)} className="px-5 py-2.5 rounded-xl border border-gray-300 text-sm font-semibold text-gray-700 hover:bg-gray-50">
                   Cancel
                 </button>
-                <button type="submit" className="px-6 py-2.5 rounded-xl bg-[#1E232A] text-white text-sm font-semibold hover:bg-[#15191E] transition-colors shadow-lg shadow-[#1E232A]/20">
+                <button type="submit" className="px-6 py-2.5 rounded-xl bg-[#005B4F] text-white text-sm font-semibold hover:bg-[#004A40] transition-colors shadow-md shadow-[#005B4F]/20 cursor-pointer">
                   Create Commercial Loan Mandate
                 </button>
               </div>

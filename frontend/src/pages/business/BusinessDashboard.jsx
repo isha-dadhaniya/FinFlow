@@ -526,23 +526,8 @@ export default function BusinessDashboard() {
           </div>
         </div>
 
-        {/* Action Controls & Time Filter Pill */}
+        {/* Time Filter Pill */}
         <div className="flex items-center gap-2.5 self-start sm:self-auto flex-wrap">
-          <Link
-            to="/app/business/expenses"
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-[#E5E7EB] hover:bg-gray-50 text-xs font-bold text-[#1F2937] shadow-xs transition-all"
-          >
-            <Plus className="w-3.5 h-3.5 text-[#005B4F]" />
-            <span>Add Expense</span>
-          </Link>
-          <Link
-            to="/app/business/invoices"
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#005B4F] hover:bg-[#004A40] text-xs font-bold text-white shadow-xs shadow-[#005B4F]/20 transition-all"
-          >
-            <FileText className="w-3.5 h-3.5" />
-            <span>New Invoice</span>
-          </Link>
-
           {/* Time Filter Dropdown */}
           <div className="relative">
             <button

@@ -514,11 +514,8 @@ export default function BusinessDashboard() {
             </div>
           )}
           <div>
-            <h1 className="text-2xl sm:text-[28px] font-extrabold text-[#111827] tracking-tight flex items-center gap-2">
-              <span>{greeting}, {firstName}!</span>
-              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-50 text-[#005B4F] border border-emerald-200/60 hidden md:inline-block">
-                {businessName}
-              </span>
+            <h1 className="text-2xl sm:text-[28px] font-extrabold text-[#111827] tracking-tight">
+              {greeting}, {firstName}!
             </h1>
             <p className="text-xs sm:text-sm font-medium text-[#6B7280] mt-0.5">
               Company financial overview {dateRange.label}

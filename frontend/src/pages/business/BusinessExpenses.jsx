@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Plus, Search, Edit2, Trash2, CreditCard, X, Building2, Store, FileText, CheckCircle2, Clock, AlertCircle, Landmark, RefreshCw } from "lucide-react";
+import { Plus, Search, Trash2, CreditCard, X, Building2, Store, FileText, CheckCircle2, Clock, AlertCircle, Landmark, RefreshCw } from "lucide-react";
 
 const API = "http://localhost:5000/api";
 const getToken = () => localStorage.getItem("token");
@@ -271,41 +271,7 @@ export default function BusinessExpenses() {
                 </div>
                 <div className="flex items-center gap-3">
                   <p className="text-sm font-bold text-rose-600">- {formatCurrency(exp.amount)}</p>
-                  <button
-                    onClick={() => {
-                      setEditItem(exp);
-                      const derivedGstRate = exp.gstRate !== undefined && exp.gstRate !== null
-                        ? (exp.gstRate || "")
-                        : (exp.gstAmount && exp.amount ? Math.round((exp.gstAmount / exp.amount) * 100) : "");
-                      const defaultAcc = accounts.length > 0 ? (accounts[0]?.name || accounts[0]?.nickname || accounts[0]?.bankName) : "";
-                      const matchedAcc = accounts.find(
-                        (a) => a.name === exp.account || a.nickname === exp.account || a.bankName === exp.account || a._id === exp.account
-                      );
-                      const initialAccount =
-                        exp.paymentMethod === "Petty Cash"
-                          ? "Petty Cash"
-                          : matchedAcc
-                          ? matchedAcc.name || matchedAcc.nickname || matchedAcc.bankName
-                          : defaultAcc;
-                      setForm({
-                        title: exp.title,
-                        amount: exp.amount,
-                        category: exp.category || "Office Supplies",
-                        paymentMethod: exp.paymentMethod || "Bank Transfer",
-                        account: initialAccount,
-                        department: exp.department || "General",
-                        vendor: exp.vendor || "",
-                        gstRate: derivedGstRate === 0 ? "" : derivedGstRate,
-                        date: exp.date ? new Date(exp.date).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
-                        notes: exp.notes || "",
-                      });
-                      setShowForm(true);
-                    }}
-                    className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-[#005B4F]"
-                  >
-                    <Edit2 className="w-3.5 h-3.5" />
-                  </button>
-                  <button onClick={() => handleDelete(exp._id)} className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500">
+                  <button onClick={() => handleDelete(exp._id)} className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500" title="Delete Expense">
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>

@@ -36,6 +36,9 @@ router.delete("/departments/:id", authMiddleware, departmentController.delete);
 // Projects
 router.get("/projects", authMiddleware, projectController.getAll);
 router.post("/projects", authMiddleware, projectController.create);
+// Project expense sub-routes (must be before generic :id routes in Express 5)
+router.post("/projects/:id/expenses", authMiddleware, projectController.addExpense);
+router.delete("/projects/:id/expenses/:expenseId", authMiddleware, projectController.deleteExpense);
 router.put("/projects/:id", authMiddleware, projectController.update);
 router.delete("/projects/:id", authMiddleware, projectController.delete);
 

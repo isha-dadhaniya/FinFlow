@@ -10,6 +10,13 @@ const projectSchema = new mongoose.Schema(
     endDate: { type: Date },
     employees: [{ type: String }],
     expenses: { type: Number, default: 0 },
+    expenseItems: [{
+      title: { type: String, required: true },
+      amount: { type: Number, required: true },
+      category: { type: String, default: "General" },
+      date: { type: Date, default: Date.now },
+      notes: { type: String, default: "" },
+    }],
     revenue: { type: Number, default: 0 },
     profit: { type: Number, default: 0 },
     status: { type: String, enum: ["active", "completed", "on-hold"], default: "active" },

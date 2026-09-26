@@ -161,6 +161,102 @@ familyGoalController.addContributor = async (req, res) => {
   } catch (error) { res.status(500).json({ message: error.message }); }
 };
 
+// Custom: Project create with expenseItems support
+projectController.create = async (req, res) => {
+  try {
+    const data = { ...req.body, userId: req.user.id };
+    if (Array.isArray(data.expenseItems) && data.expenseItems.length > 0) {
+      data.expenses = data.expenseItems.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+    }
+    const item = await Project.create(data);
+    res.status(201).json(item);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Custom: Add expense to a project (deducts from remaining budget)
+projectController.addExpense = async (req, res) => {
+  try {
+    const userId = req.user?.id || req.user?._id;
+    const projectId = req.params.id;
+
+    if (!projectId) {
+      return res.status(400).json({ message: "Project ID is required" });
+    }
+
+    const project = await Project.findById(projectId);
+    if (!project) return res.status(404).json({ message: "Project not found" });
+
+    // Ensure authorization if project has a userId
+    if (userId && project.userId && project.userId.toString() !== userId.toString()) {
+      return res.status(403).json({ message: "Not authorized to modify this project" });
+    }
+
+    const { title, amount, category, date, notes } = req.body;
+    const numAmount = Number(amount) || 0;
+    if (numAmount <= 0) {
+      return res.status(400).json({ message: "Amount must be greater than 0" });
+    }
+
+    if (!Array.isArray(project.expenseItems)) {
+      project.expenseItems = [];
+    }
+
+    project.expenseItems.push({
+      title: (title || "").trim() || "Project Expense",
+      amount: numAmount,
+      category: category || "General",
+      date: date ? new Date(date) : new Date(),
+      notes: (notes || "").trim(),
+    });
+
+    project.expenses = project.expenseItems.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+
+    if (userId && !project.userId) {
+      project.userId = userId;
+    }
+
+    await project.save();
+    return res.status(200).json(project);
+  } catch (error) {
+    console.error("projectController.addExpense error:", error);
+    return res.status(500).json({ message: error.message || "Failed to add project expense" });
+  }
+};
+
+// Custom: Delete a single expense from a project (refunds remaining budget)
+projectController.deleteExpense = async (req, res) => {
+  try {
+    const userId = req.user?.id || req.user?._id;
+    const project = await Project.findById(req.params.id);
+    if (!project) return res.status(404).json({ message: "Project not found" });
+
+    if (userId && project.userId && project.userId.toString() !== userId.toString()) {
+      return res.status(403).json({ message: "Not authorized to modify this project" });
+    }
+
+    if (!Array.isArray(project.expenseItems)) {
+      project.expenseItems = [];
+    }
+
+    const expenseIndex = project.expenseItems.findIndex(
+      (item) => item._id && item._id.toString() === req.params.expenseId
+    );
+    if (expenseIndex === -1) {
+      return res.status(404).json({ message: "Expense item not found" });
+    }
+
+    project.expenseItems.splice(expenseIndex, 1);
+    project.expenses = project.expenseItems.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+    await project.save();
+    return res.status(200).json(project);
+  } catch (error) {
+    console.error("projectController.deleteExpense error:", error);
+    return res.status(500).json({ message: error.message || "Failed to delete project expense" });
+  }
+};
+
 module.exports = {
   settlementController,
   familyGoalController,

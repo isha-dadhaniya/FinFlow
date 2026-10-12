@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 540 160" fill="none">
+  <defs>
+    <!-- Top Ribbon Gradient -->
+    <linearGradient id="topRibbonDark" x1="20" y1="20" x2="160" y2="70" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#044E42" />
+      <stop offset="50%" stop-color="#067A65" />
+      <stop offset="100%" stop-color="#0A9B80" />
+    </linearGradient>
+
+    <!-- Middle Ribbon Gradient -->
+    <linearGradient id="midRibbonDark" x1="30" y1="60" x2="150" y2="100" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#065F51" />
+      <stop offset="60%" stop-color="#0D9B7F" />
+      <stop offset="100%" stop-color="#10B981" />
+    </linearGradient>
+
+    <!-- Bottom Ribbon Gradient -->
+    <linearGradient id="botRibbonDark" x1="20" y1="80" x2="160" y2="150" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#059669" />
+      <stop offset="50%" stop-color="#10B981" />
+      <stop offset="100%" stop-color="#34D399" />
+    </linearGradient>
+
+    <!-- Fold Shadow Gradient -->
+    <linearGradient id="foldShadowDark" x1="30" y1="40" x2="50" y2="90" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#022C24" stop-opacity="0.9" />
+      <stop offset="100%" stop-color="#044E42" stop-opacity="0.2" />
+    </linearGradient>
+  </defs>
+
+  <!-- Green Wave 'F' Emblem -->
+  <g transform="translate(10, 5)">
+    <!-- Top Wave Ribbon -->
+    <path d="M 45 62 C 45 42, 60 22, 90 20 C 120 18, 145 28, 162 18 C 145 35, 125 46, 95 48 C 70 50, 55 58, 45 62 Z" fill="url(#topRibbonDark)" />
+
+    <!-- Fold Shadow Effect -->
+    <path d="M 38 68 C 44 58, 52 50, 62 48 C 52 58, 46 68, 42 82 Z" fill="url(#foldShadowDark)" />
+
+    <!-- Middle Wave Ribbon -->
+    <path d="M 42 72 C 60 62, 85 58, 110 56 C 135 54, 145 44, 142 42 C 120 54, 95 62, 70 66 C 55 68, 45 74, 42 72 Z" fill="url(#midRibbonDark)" />
+
+    <!-- Main Stem & Sweep Bottom Wave Ribbon -->
+    <path d="M 48 44 C 32 58, 22 80, 24 102 C 26 122, 16 142, 8 148 C 22 144, 40 134, 52 114 C 62 98, 78 88, 105 82 C 130 76, 142 66, 138 64 C 115 74, 90 84, 62 86 C 52 86, 48 68, 48 44 Z" fill="url(#botRibbonDark)" />
+  </g>
+
+  <!-- Wordmark "FinFlow" in White -->
+  <text x="182" y="112" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Outfit', 'Inter', 'Segoe UI', sans-serif" font-size="88" font-weight="700" letter-spacing="-1.5px" fill="#FFFFFF">FinFlow</text>
+</svg>

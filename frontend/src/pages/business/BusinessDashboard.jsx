@@ -20,7 +20,6 @@ import {
   PieChart,
   Plus,
   Landmark,
-  BadgeDollarSign,
   Briefcase,
   Layers,
   CheckCircle2,

@@ -20,6 +20,7 @@ import {
   Search,
   Filter,
 } from "lucide-react";
+import ConfirmModal, { AlertModal } from "../../components/common/ConfirmModal";
 
 const API = "http://localhost:5000/api";
 const getToken = () => localStorage.getItem("token");
@@ -95,6 +96,8 @@ export default function BusinessAccounts() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editItem, setEditItem] = useState(null);
+  const [deleteAccountId, setDeleteAccountId] = useState(null);
+  const [alertMessage, setAlertMessage] = useState("");
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
 
@@ -331,7 +334,7 @@ export default function BusinessAccounts() {
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
-        alert(errorData.message || "Failed to save corporate account.");
+        setAlertMessage(errorData.message || "Failed to save corporate account.");
         return;
       }
 
@@ -344,14 +347,16 @@ export default function BusinessAccounts() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Delete this corporate banking account?")) return;
+  const confirmDelete = async () => {
+    if (!deleteAccountId) return;
     try {
-      await fetch(`${API}/accounts/${id}`, { method: "DELETE", headers: headers() });
+      await fetch(`${API}/accounts/${deleteAccountId}`, { method: "DELETE", headers: headers() });
       loadAccounts();
       window.dispatchEvent(new Event("finflow_data_updated"));
     } catch (err) {
       console.error("Delete business account error:", err);
+    } finally {
+      setDeleteAccountId(null);
     }
   };
 
@@ -460,8 +465,9 @@ export default function BusinessAccounts() {
                       <Edit2 className="w-3.5 h-3.5" />
                     </button>
                     <button
-                      onClick={() => handleDelete(acc._id)}
-                      className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500"
+                      onClick={() => setDeleteAccountId(acc._id)}
+                      className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors cursor-pointer"
+                      title="Delete Account"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -1161,6 +1167,26 @@ export default function BusinessAccounts() {
           </div>
         </div>
       )}
+
+      {/* Custom Confirmation Modal */}
+      <ConfirmModal
+        isOpen={Boolean(deleteAccountId)}
+        onClose={() => setDeleteAccountId(null)}
+        onConfirm={confirmDelete}
+        title="Delete Corporate Account"
+        message="Are you sure you want to delete this corporate banking account? All transaction records will be preserved."
+        confirmText="Delete Account"
+        isDanger={true}
+      />
+
+      {/* Alert Modal */}
+      <AlertModal
+        isOpen={Boolean(alertMessage)}
+        onClose={() => setAlertMessage("")}
+        title="Corporate Account Notice"
+        message={alertMessage}
+        type="warning"
+      />
     </div>
   );
 }

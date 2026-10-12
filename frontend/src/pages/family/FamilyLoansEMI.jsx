@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Plus, Trash2, Edit2, BadgeDollarSign, X, Check, ChevronDown, ChevronUp, Landmark, ShieldCheck, BellRing, Zap, Users } from "lucide-react";
+import { Plus, Trash2, Edit2, BadgeIndianRupee, X, Check, ChevronDown, ChevronUp, Landmark, ShieldCheck, BellRing, Zap, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 import BankAccountRequiredModal from "../../components/common/BankAccountRequiredModal";
 import ConfirmModal from "../../components/common/ConfirmModal";
@@ -216,7 +216,7 @@ export default function FamilyLoansEMI() {
           <div className="p-10 text-center text-sm text-gray-400">Loading joint loans...</div>
         ) : loans.length === 0 ? (
           <div className="bg-white rounded-2xl border border-[#E5E7EB] p-12 text-center shadow-xs">
-            <BadgeDollarSign className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+            <BadgeIndianRupee className="w-12 h-12 text-gray-300 mx-auto mb-3" />
             <p className="text-base font-bold text-[#1F2937]">No Family Loans Active</p>
             <p className="text-xs text-gray-400 mt-1 max-w-sm mx-auto mb-5">
               Add home mortgages, vehicle financing, or educational loans to schedule family pool deductions.

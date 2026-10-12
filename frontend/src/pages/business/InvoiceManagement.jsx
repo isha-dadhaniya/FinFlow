@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Plus, Search, Edit2, Trash2, ReceiptIndianRupee, Download, Printer, Check, X, Building2, Calendar, DollarSign } from "lucide-react";
+import ConfirmModal from "../../components/common/ConfirmModal";
 import finflowLogo from "../../assets/finflow-logo.png";
 
 const API = "http://localhost:5000/api";
@@ -15,6 +16,7 @@ export default function InvoiceManagement() {
   const [showModal, setShowModal] = useState(false);
   const [editItem, setEditItem] = useState(null);
   const [previewItem, setPreviewItem] = useState(null);
+  const [deleteInvoiceId, setDeleteInvoiceId] = useState(null);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
 
@@ -117,13 +119,15 @@ export default function InvoiceManagement() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Delete this invoice permanently?")) return;
+  const confirmDelete = async () => {
+    if (!deleteInvoiceId) return;
     try {
-      await fetch(`${API}/business/invoices/${id}`, { method: "DELETE", headers: headers() });
+      await fetch(`${API}/business/invoices/${deleteInvoiceId}`, { method: "DELETE", headers: headers() });
       loadInvoices();
     } catch (err) {
       console.error("Delete invoice error:", err);
+    } finally {
+      setDeleteInvoiceId(null);
     }
   };
 
@@ -301,7 +305,7 @@ export default function InvoiceManagement() {
                     <Printer className="w-4 h-4" />
                   </button>
 
-                  <button onClick={() => handleDelete(inv._id)} className="p-2 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500" title="Delete">
+                  <button onClick={() => setDeleteInvoiceId(inv._id)} className="p-2 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors cursor-pointer" title="Delete">
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
@@ -576,6 +580,17 @@ export default function InvoiceManagement() {
           </div>
         </div>
       )}
+
+      {/* Custom Confirmation Modal */}
+      <ConfirmModal
+        isOpen={Boolean(deleteInvoiceId)}
+        onClose={() => setDeleteInvoiceId(null)}
+        onConfirm={confirmDelete}
+        title="Delete Invoice"
+        message="Are you sure you want to delete this invoice permanently? This action cannot be undone."
+        confirmText="Delete Invoice"
+        isDanger={true}
+      />
     </div>
   );
 }

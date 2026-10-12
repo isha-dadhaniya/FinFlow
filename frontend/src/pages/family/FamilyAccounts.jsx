@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Plus, Edit2, Trash2, Landmark, CreditCard, Wallet, X, Building2, Check, Users } from "lucide-react";
-import ConfirmModal from "../../components/common/ConfirmModal";
+import ConfirmModal, { AlertModal } from "../../components/common/ConfirmModal";
 
 const API = "http://localhost:5000/api";
 const getToken = () => localStorage.getItem("token");
@@ -55,6 +55,7 @@ export default function FamilyAccounts() {
   const [showModal, setShowModal] = useState(false);
   const [editItem, setEditItem] = useState(null);
   const [deleteAccountId, setDeleteAccountId] = useState(null);
+  const [alertMessage, setAlertMessage] = useState("");
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
 
@@ -170,7 +171,7 @@ export default function FamilyAccounts() {
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
-        alert(errorData.message || "Failed to save joint account.");
+        setAlertMessage(errorData.message || "Failed to save joint account.");
         return;
       }
 
@@ -540,6 +541,15 @@ export default function FamilyAccounts() {
         message="Are you sure you want to delete this joint family bank account? All scheduled pool EMIs linked to this account may need to be updated."
         confirmText="Delete"
         isDanger={true}
+      />
+
+      {/* Alert Modal */}
+      <AlertModal
+        isOpen={Boolean(alertMessage)}
+        onClose={() => setAlertMessage("")}
+        title="Joint Account Notice"
+        message={alertMessage}
+        type="warning"
       />
     </div>
   );

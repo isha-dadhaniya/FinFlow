@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Plus, RefreshCcw, Trash2, X } from "lucide-react";
+import ConfirmModal from "../../components/common/ConfirmModal";
 
 const formatCurrency = (a) => new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(a || 0);
 const STATUSES = ["Draft", "Submitted", "Under Review", "Approved", "Rejected", "Paid"];
@@ -8,13 +9,28 @@ const statusColors = { Draft: "bg-gray-100 text-gray-600", Submitted: "bg-blue-5
 export default function Reimbursements() {
   const [items, setItems] = useState([]); const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [deleteItem, setDeleteItem] = useState(null);
   const [form, setForm] = useState({ employeeName: "", amount: "", description: "", category: "Other", status: "Draft" });
 
   useEffect(() => { loadData(); }, []);
   const loadData = async () => { try { const t = localStorage.getItem("token"); const r = await fetch("http://localhost:5000/api/workspace/reimbursements?workspace=business", { headers: { Authorization: `Bearer ${t}` } }); const d = await r.json(); setItems(Array.isArray(d) ? d : []); } catch { setItems([]); } finally { setLoading(false); } };
   const handleSubmit = async (e) => { e.preventDefault(); const t = localStorage.getItem("token"); await fetch("http://localhost:5000/api/workspace/reimbursements", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` }, body: JSON.stringify({ ...form, amount: Number(form.amount), workspace: "business" }) }); setShowForm(false); setForm({ employeeName: "", amount: "", description: "", category: "Other", status: "Draft" }); loadData(); };
   const updateStatus = async (id, status) => { const t = localStorage.getItem("token"); await fetch(`http://localhost:5000/api/workspace/reimbursements/${id}`, { method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` }, body: JSON.stringify({ status }) }); loadData(); };
-  const del = async (id) => { if (!confirm("Delete?")) return; const t = localStorage.getItem("token"); await fetch(`http://localhost:5000/api/workspace/reimbursements/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${t}` } }); loadData(); };
+  const confirmDelete = async () => {
+    if (!deleteItem) return;
+    try {
+      const t = localStorage.getItem("token");
+      await fetch(`http://localhost:5000/api/workspace/reimbursements/${deleteItem._id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${t}` },
+      });
+      loadData();
+    } catch (err) {
+      console.error("Failed to delete reimbursement:", err);
+    } finally {
+      setDeleteItem(null);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -41,7 +57,7 @@ export default function Reimbursements() {
                     className={`px-2 py-1 text-[10px] font-bold rounded-lg border-0 outline-none cursor-pointer ${statusColors[item.status] || statusColors.Draft}`}>
                     {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
-                  <button onClick={() => del(item._id)} className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
+                  <button onClick={() => setDeleteItem(item)} className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors cursor-pointer" title="Delete Claim"><Trash2 className="w-3.5 h-3.5" /></button>
                 </div>
               </div>
             ))}
@@ -62,6 +78,21 @@ export default function Reimbursements() {
           </div>
         </div>
       )}
+
+      {/* Custom Confirmation Modal */}
+      <ConfirmModal
+        isOpen={Boolean(deleteItem)}
+        onClose={() => setDeleteItem(null)}
+        onConfirm={confirmDelete}
+        title="Delete Reimbursement"
+        message={
+          deleteItem
+            ? `Are you sure you want to delete this ${formatCurrency(deleteItem.amount)} claim submitted by ${deleteItem.employeeName}?`
+            : "Are you sure you want to delete this reimbursement claim?"
+        }
+        confirmText="Delete Claim"
+        isDanger={true}
+      />
     </div>
   );
 }

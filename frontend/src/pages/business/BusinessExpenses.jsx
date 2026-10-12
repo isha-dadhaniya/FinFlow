@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Plus, Search, Trash2, CreditCard, X, Building2, Store, FileText, CheckCircle2, Clock, AlertCircle, Landmark, RefreshCw } from "lucide-react";
+import ConfirmModal from "../../components/common/ConfirmModal";
 
 const API = "http://localhost:5000/api";
 const getToken = () => localStorage.getItem("token");
@@ -19,6 +20,7 @@ export default function BusinessExpenses() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState(null);
+  const [deleteExpenseId, setDeleteExpenseId] = useState(null);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
 
@@ -144,14 +146,16 @@ export default function BusinessExpenses() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Delete this business expense record? The deducted amount will be refunded to your corporate bank account.")) return;
+  const confirmDelete = async () => {
+    if (!deleteExpenseId) return;
     try {
-      await fetch(`${API}/expenses/${id}`, { method: "DELETE", headers: headers() });
+      await fetch(`${API}/expenses/${deleteExpenseId}`, { method: "DELETE", headers: headers() });
       loadData();
       window.dispatchEvent(new Event("finflow_data_updated"));
     } catch (err) {
       console.error("Delete business expense error:", err);
+    } finally {
+      setDeleteExpenseId(null);
     }
   };
 
@@ -271,7 +275,7 @@ export default function BusinessExpenses() {
                 </div>
                 <div className="flex items-center gap-3">
                   <p className="text-sm font-bold text-rose-600">- {formatCurrency(exp.amount)}</p>
-                  <button onClick={() => handleDelete(exp._id)} className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500" title="Delete Expense">
+                  <button onClick={() => setDeleteExpenseId(exp._id)} className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors cursor-pointer" title="Delete Expense">
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -449,6 +453,17 @@ export default function BusinessExpenses() {
           </div>
         </div>
       )}
+
+      {/* Custom Confirmation Modal */}
+      <ConfirmModal
+        isOpen={Boolean(deleteExpenseId)}
+        onClose={() => setDeleteExpenseId(null)}
+        onConfirm={confirmDelete}
+        title="Delete Business Expense"
+        message="Are you sure you want to delete this business expense record? The deducted amount will be refunded to your corporate bank account."
+        confirmText="Delete Expense"
+        isDanger={true}
+      />
     </div>
   );
 }

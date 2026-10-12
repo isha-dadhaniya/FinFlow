@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Plus, Trash2, Edit2, PiggyBank, Target, Calendar, Check, X, Users, Landmark, AlertCircle, CheckCircle2 } from "lucide-react";
-import ConfirmModal from "../../components/common/ConfirmModal";
+import ConfirmModal, { AlertModal } from "../../components/common/ConfirmModal";
 
 const API = "http://localhost:5000/api";
 const getToken = () => localStorage.getItem("token");
@@ -31,6 +31,7 @@ export default function FamilyGoals() {
   const [contribAmount, setContribAmount] = useState("");
   const [contribAccount, setContribAccount] = useState("");
   const [contribNote, setContribNote] = useState("");
+  const [alertMessage, setAlertMessage] = useState("");
 
   const [form, setForm] = useState({
     title: "",
@@ -127,7 +128,7 @@ export default function FamilyGoals() {
       });
 
       if (!res.ok) {
-        alert("Failed to save family goal.");
+        setAlertMessage("Failed to save family goal.");
         return;
       }
 
@@ -153,7 +154,7 @@ export default function FamilyGoals() {
         }),
       });
       if (!res.ok) {
-        alert("Failed to deposit contribution.");
+        setAlertMessage("Failed to deposit contribution.");
         return;
       }
       setContribGoal(null);
@@ -591,6 +592,15 @@ export default function FamilyGoals() {
         message="Are you sure you want to delete this shared family savings goal? Any collected target records will be removed."
         confirmText="Delete"
         isDanger={true}
+      />
+
+      {/* Alert Modal */}
+      <AlertModal
+        isOpen={Boolean(alertMessage)}
+        onClose={() => setAlertMessage("")}
+        title="Family Goal Notice"
+        message={alertMessage}
+        type="warning"
       />
     </div>
   );

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Plus, Target, Building2, TrendingDown, X, Edit2, Trash2 } from "lucide-react";
+import ConfirmModal from "../../components/common/ConfirmModal";
 
 const API = "http://localhost:5000/api";
 const getToken = () => localStorage.getItem("token");
@@ -15,6 +16,7 @@ export default function BusinessBudgets() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editItem, setEditItem] = useState(null);
+  const [deleteBudgetId, setDeleteBudgetId] = useState(null);
   const [form, setForm] = useState({ name: "Sales", budget: "" });
 
   useEffect(() => {
@@ -57,13 +59,15 @@ export default function BusinessBudgets() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Remove this department budget?")) return;
+  const confirmDelete = async () => {
+    if (!deleteBudgetId) return;
     try {
-      await fetch(`${API}/workspace/departments/${id}`, { method: "DELETE", headers: headers() });
+      await fetch(`${API}/workspace/departments/${deleteBudgetId}`, { method: "DELETE", headers: headers() });
       loadBudgets();
     } catch (err) {
       console.error("Delete department budget error:", err);
+    } finally {
+      setDeleteBudgetId(null);
     }
   };
 
@@ -135,7 +139,7 @@ export default function BusinessBudgets() {
                       >
                         <Edit2 className="w-3.5 h-3.5" />
                       </button>
-                      <button onClick={() => handleDelete(dept._id)} className="p-1 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500">
+                      <button onClick={() => setDeleteBudgetId(dept._id)} className="p-1 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors cursor-pointer" title="Remove Budget">
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
@@ -205,6 +209,17 @@ export default function BusinessBudgets() {
           </div>
         </div>
       )}
+
+      {/* Custom Confirmation Modal */}
+      <ConfirmModal
+        isOpen={Boolean(deleteBudgetId)}
+        onClose={() => setDeleteBudgetId(null)}
+        onConfirm={confirmDelete}
+        title="Remove Department Budget"
+        message="Are you sure you want to remove this department budget cap? Spending tracking will remain available."
+        confirmText="Remove Budget"
+        isDanger={true}
+      />
     </div>
   );
 }

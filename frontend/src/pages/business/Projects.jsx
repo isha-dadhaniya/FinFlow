@@ -22,6 +22,7 @@ import {
   Layers,
   ArrowRight,
 } from "lucide-react";
+import ConfirmModal, { AlertModal } from "../../components/common/ConfirmModal";
 
 const API = "http://localhost:5000/api";
 const getToken = () => localStorage.getItem("token");
@@ -112,6 +113,11 @@ export default function Projects() {
 
   // Full Details Drawer / Modal
   const [detailProject, setDetailProject] = useState(null);
+
+  // Dialog State
+  const [deleteProjectModal, setDeleteProjectModal] = useState(null);
+  const [deleteExpenseModal, setDeleteExpenseModal] = useState(null);
+  const [alertModalMessage, setAlertModalMessage] = useState("");
 
   useEffect(() => {
     document.title = "Projects & Expenses | FinFlow";
@@ -226,14 +232,16 @@ export default function Projects() {
     }
   };
 
-  const handleDeleteProject = async (id, name) => {
-    if (!window.confirm(`Are you sure you want to delete project "${name}" and all of its recorded expenses?`)) return;
+  const confirmDeleteProject = async () => {
+    if (!deleteProjectModal) return;
     try {
-      await fetch(`${API}/workspace/projects/${id}`, { method: "DELETE", headers: headers() });
-      if (detailProject && detailProject._id === id) setDetailProject(null);
+      await fetch(`${API}/workspace/projects/${deleteProjectModal.id}`, { method: "DELETE", headers: headers() });
+      if (detailProject && detailProject._id === deleteProjectModal.id) setDetailProject(null);
       await loadProjects();
     } catch (err) {
       console.error("Delete project error:", err);
+    } finally {
+      setDeleteProjectModal(null);
     }
   };
 
@@ -254,7 +262,7 @@ export default function Projects() {
     if (!expenseModalProject) return;
     const amountVal = Number(expenseForm.amount) || 0;
     if (amountVal <= 0) {
-      alert("Please enter a valid expense amount greater than 0");
+      setAlertModalMessage("Please enter a valid expense amount greater than 0");
       return;
     }
 
@@ -283,22 +291,20 @@ export default function Projects() {
         setExpenseModalProject(null);
       } else {
         const errData = await res.json().catch(() => ({}));
-        alert(errData.message || "Failed to save project expense. Please check input.");
+        setAlertModalMessage(errData.message || "Failed to save project expense. Please check input.");
       }
     } catch (err) {
       console.error("Add expense error:", err);
-      alert("Network error: unable to save expense. Please check your connection.");
+      setAlertModalMessage("Network error: unable to save expense. Please check your connection.");
     } finally {
       setIsSubmittingExpense(false);
     }
   };
 
-  const handleDeleteExpense = async (projectId, expenseId, expenseTitle, amount) => {
-    if (!window.confirm(`Delete expense "${expenseTitle}" (- ${formatCurrency(amount)})? This amount will be returned to the project's remaining balance.`)) {
-      return;
-    }
-
+  const confirmDeleteExpense = async () => {
+    if (!deleteExpenseModal) return;
     try {
+      const { projectId, expenseId } = deleteExpenseModal;
       const res = await fetch(`${API}/workspace/projects/${projectId}/expenses/${expenseId}`, {
         method: "DELETE",
         headers: headers(),
@@ -310,11 +316,13 @@ export default function Projects() {
         if (detailProject && detailProject._id === updated._id) setDetailProject(updated);
       } else {
         const errData = await res.json().catch(() => ({}));
-        alert(errData.message || "Failed to delete expense");
+        setAlertModalMessage(errData.message || "Failed to delete expense");
       }
     } catch (err) {
       console.error("Delete expense error:", err);
-      alert("Network error while deleting expense");
+      setAlertModalMessage("Network error while deleting expense");
+    } finally {
+      setDeleteExpenseModal(null);
     }
   };
 
@@ -539,8 +547,8 @@ export default function Projects() {
                         <Edit2 className="w-3.5 h-3.5" />
                       </button>
                       <button
-                        onClick={() => handleDeleteProject(p._id, p.name)}
-                        className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                        onClick={() => setDeleteProjectModal({ id: p._id, name: p.name })}
+                        className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
                         title="Delete Project"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -715,8 +723,8 @@ export default function Projects() {
                                 - {formatCurrency(item.amount)}
                               </span>
                               <button
-                                onClick={() => handleDeleteExpense(p._id, item._id, item.title, item.amount)}
-                                className="p-1 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                                onClick={() => setDeleteExpenseModal({ projectId: p._id, expenseId: item._id, title: item.title, amount: item.amount })}
+                                className="p-1 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
                                 title="Delete expense"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
@@ -1259,9 +1267,9 @@ export default function Projects() {
                                 </span>
                                 <button
                                   onClick={() =>
-                                    handleDeleteExpense(detailProject._id, it._id, it.title, it.amount)
+                                    setDeleteExpenseModal({ projectId: detailProject._id, expenseId: it._id, title: it.title, amount: it.amount })
                                   }
-                                  className="p-1 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                                  className="p-1 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
                                   title="Delete Expense"
                                 >
                                   <Trash2 className="w-3.5 h-3.5" />
@@ -1279,6 +1287,45 @@ export default function Projects() {
           </div>
         </div>
       )}
+
+      {/* Confirm Project Delete */}
+      <ConfirmModal
+        isOpen={Boolean(deleteProjectModal)}
+        onClose={() => setDeleteProjectModal(null)}
+        onConfirm={confirmDeleteProject}
+        title="Delete Project"
+        message={
+          deleteProjectModal
+            ? `Are you sure you want to delete project "${deleteProjectModal.name}" and all of its recorded expenses?`
+            : "Are you sure you want to delete this project?"
+        }
+        confirmText="Delete Project"
+        isDanger={true}
+      />
+
+      {/* Confirm Expense Delete */}
+      <ConfirmModal
+        isOpen={Boolean(deleteExpenseModal)}
+        onClose={() => setDeleteExpenseModal(null)}
+        onConfirm={confirmDeleteExpense}
+        title="Delete Project Expense"
+        message={
+          deleteExpenseModal
+            ? `Delete expense "${deleteExpenseModal.title}" (- ${formatCurrency(deleteExpenseModal.amount)})? This amount will be returned to the project's remaining balance.`
+            : "Are you sure you want to delete this expense?"
+        }
+        confirmText="Delete Expense"
+        isDanger={true}
+      />
+
+      {/* Alert Modal */}
+      <AlertModal
+        isOpen={Boolean(alertModalMessage)}
+        onClose={() => setAlertModalMessage("")}
+        title="Project Alert"
+        message={alertModalMessage}
+        type="warning"
+      />
     </div>
   );
 }

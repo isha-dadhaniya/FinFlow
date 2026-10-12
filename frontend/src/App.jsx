@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { WorkspaceProvider } from "./context/WorkspaceContext";
 
+import LandingPage from "./pages/LandingPage";
 import SignUp from "./pages/SignUp";
 import Login from "./pages/Login";
 import AccountTypeSelection from "./pages/AccountTypeSelection";
@@ -72,8 +73,9 @@ function App() {
     <WorkspaceProvider>
       <BrowserRouter>
         <Routes>
-          {/* Public Auth Routes */}
-          <Route path="/" element={<Navigate to="/SignUp" replace />} />
+          {/* Public Landing & Auth Routes */}
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/landing" element={<LandingPage />} />
           <Route path="/SignUp" element={<SignUp />} />
           <Route path="/Login" element={<Login />} />
           <Route path="/account-type" element={<AccountTypeSelection />} />

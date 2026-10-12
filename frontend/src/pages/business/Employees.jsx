@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Plus, Edit2, Trash2, Users, X, Briefcase } from "lucide-react";
+import ConfirmModal from "../../components/common/ConfirmModal";
 
 const ROLES = ["Owner", "Admin", "Finance", "Manager", "Employee", "Accountant"];
 const DEPARTMENTS = ["Sales", "Marketing", "HR", "Finance", "IT", "Operations", "Development", "Other"];
@@ -7,6 +8,7 @@ const DEPARTMENTS = ["Sales", "Marketing", "HR", "Finance", "IT", "Operations", 
 export default function Employees() {
   const [employees, setEmployees] = useState([]); const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false); const [editItem, setEditItem] = useState(null);
+  const [deleteEmployee, setDeleteEmployee] = useState(null);
   const [form, setForm] = useState({ name: "", employeeId: "", department: "IT", designation: "", role: "Employee", email: "", phone: "" });
 
   useEffect(() => { loadData(); }, []);
@@ -22,7 +24,21 @@ export default function Employees() {
     setShowForm(false); setEditItem(null); setForm({ name: "", employeeId: "", department: "IT", designation: "", role: "Employee", email: "", phone: "" }); loadData();
   };
 
-  const del = async (id) => { if (!confirm("Remove?")) return; const t = localStorage.getItem("token"); await fetch(`http://localhost:5000/api/workspace/employees/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${t}` } }); loadData(); };
+  const confirmDelete = async () => {
+    if (!deleteEmployee) return;
+    try {
+      const t = localStorage.getItem("token");
+      await fetch(`http://localhost:5000/api/workspace/employees/${deleteEmployee._id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${t}` },
+      });
+      loadData();
+    } catch (err) {
+      console.error("Failed to delete employee:", err);
+    } finally {
+      setDeleteEmployee(null);
+    }
+  };
 
   const roleColors = { Owner: "bg-purple-50 text-purple-600", Admin: "bg-red-50 text-red-600", Finance: "bg-blue-50 text-blue-600", Manager: "bg-amber-50 text-amber-600", Employee: "bg-gray-100 text-gray-600", Accountant: "bg-[#005B4F]/10 text-[#005B4F]" };
 
@@ -49,7 +65,7 @@ export default function Employees() {
                 <div className="flex items-center gap-2">
                   <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${roleColors[emp.role] || roleColors.Employee}`}>{emp.role}</span>
                   <button onClick={() => { setEditItem(emp); setForm({ name: emp.name, employeeId: emp.employeeId, department: emp.department, designation: emp.designation, role: emp.role, email: emp.email, phone: emp.phone }); setShowForm(true); }} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400"><Edit2 className="w-3.5 h-3.5" /></button>
-                  <button onClick={() => del(emp._id)} className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
+                  <button onClick={() => setDeleteEmployee(emp)} className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors cursor-pointer" title="Remove Employee"><Trash2 className="w-3.5 h-3.5" /></button>
                 </div>
               </div>
             ))}
@@ -77,6 +93,21 @@ export default function Employees() {
           </div>
         </div>
       )}
+
+      {/* Custom Confirmation Modal */}
+      <ConfirmModal
+        isOpen={Boolean(deleteEmployee)}
+        onClose={() => setDeleteEmployee(null)}
+        onConfirm={confirmDelete}
+        title="Remove Employee"
+        message={
+          deleteEmployee
+            ? `Are you sure you want to remove ${deleteEmployee.name}? They will no longer have access to this workspace.`
+            : "Are you sure you want to remove this employee?"
+        }
+        confirmText="Remove Employee"
+        isDanger={true}
+      />
     </div>
   );
 }

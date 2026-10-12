@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Plus, Store, Trash2, Edit2, X, Phone, Mail, CheckCircle2, AlertCircle, Search } from "lucide-react";
+import ConfirmModal from "../../components/common/ConfirmModal";
 
 const formatCurrency = (a) =>
   new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(a || 0);
@@ -22,6 +23,7 @@ export default function Vendors() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editItem, setEditItem] = useState(null);
+  const [deleteVendor, setDeleteVendor] = useState(null);
   const [form, setForm] = useState({ name: "", gstNumber: "", contact: "", email: "", category: "General" });
   const [contactError, setContactError] = useState("");
   const [serverError, setServerError] = useState("");
@@ -141,14 +143,20 @@ export default function Vendors() {
     }
   };
 
-  const del = async (id) => {
-    if (!confirm("Are you sure you want to delete this vendor?")) return;
-    const t = localStorage.getItem("token");
-    await fetch(`http://localhost:5000/api/workspace/vendors/${id}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${t}` },
-    });
-    loadData();
+  const confirmDelete = async () => {
+    if (!deleteVendor) return;
+    try {
+      const t = localStorage.getItem("token");
+      await fetch(`http://localhost:5000/api/workspace/vendors/${deleteVendor._id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${t}` },
+      });
+      loadData();
+    } catch (err) {
+      console.error("Failed to delete vendor:", err);
+    } finally {
+      setDeleteVendor(null);
+    }
   };
 
   const filteredVendors = vendors.filter((v) => {
@@ -258,7 +266,7 @@ export default function Vendors() {
                     <Edit2 className="w-3.5 h-3.5" />
                   </button>
                   <button
-                    onClick={() => del(v._id)}
+                    onClick={() => setDeleteVendor(v)}
                     className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors cursor-pointer"
                     title="Delete Vendor"
                   >
@@ -425,6 +433,21 @@ export default function Vendors() {
           </div>
         </div>
       )}
+
+      {/* Custom Confirmation Modal */}
+      <ConfirmModal
+        isOpen={Boolean(deleteVendor)}
+        onClose={() => setDeleteVendor(null)}
+        onConfirm={confirmDelete}
+        title="Delete Vendor"
+        message={
+          deleteVendor
+            ? `Are you sure you want to delete vendor "${deleteVendor.name}"? This action cannot be undone.`
+            : "Are you sure you want to delete this vendor?"
+        }
+        confirmText="Delete Vendor"
+        isDanger={true}
+      />
     </div>
   );
 }

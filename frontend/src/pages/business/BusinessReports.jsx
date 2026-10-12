@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Download, FileText, FileSpreadsheet, Building2, TrendingUp, TrendingDown, DollarSign, Users, Briefcase } from "lucide-react";
+import { AlertModal } from "../../components/common/ConfirmModal";
 import finflowLogo from "../../assets/finflow-logo.png";
 
 const API = "http://localhost:5000/api";
@@ -17,6 +18,7 @@ export default function BusinessReports() {
     departments: [],
   });
   const [loading, setLoading] = useState(true);
+  const [alertMessage, setAlertMessage] = useState("");
 
   useEffect(() => {
     loadReportData();
@@ -57,7 +59,7 @@ export default function BusinessReports() {
   const exportPDF = () => {
     const printWindow = window.open("", "_blank");
     if (!printWindow) {
-      alert("Please allow popups to export the PDF report.");
+      setAlertMessage("Please allow popups in your browser to export the PDF report.");
       return;
     }
 
@@ -285,6 +287,15 @@ export default function BusinessReports() {
           ))}
         </div>
       </div>
+
+      {/* Alert Modal */}
+      <AlertModal
+        isOpen={Boolean(alertMessage)}
+        onClose={() => setAlertMessage("")}
+        title="Export PDF Notice"
+        message={alertMessage}
+        type="warning"
+      />
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Plus, Building2, Trash2, Edit2, X } from "lucide-react";
+import ConfirmModal from "../../components/common/ConfirmModal";
 
 const formatCurrency = (a) => new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(a || 0);
 const DEFAULT_DEPTS = ["Sales", "Marketing", "HR", "Finance", "IT", "Operations", "Development"];
@@ -7,6 +8,7 @@ const DEFAULT_DEPTS = ["Sales", "Marketing", "HR", "Finance", "IT", "Operations"
 export default function Departments() {
   const [depts, setDepts] = useState([]); const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false); const [editItem, setEditItem] = useState(null);
+  const [deleteDept, setDeleteDept] = useState(null);
   const [form, setForm] = useState({ name: "", budget: "" });
 
   useEffect(() => { loadData(); }, []);
@@ -22,7 +24,21 @@ export default function Departments() {
     setShowForm(false); setEditItem(null); setForm({ name: "", budget: "" }); loadData();
   };
 
-  const del = async (id) => { if (!confirm("Delete?")) return; const t = localStorage.getItem("token"); await fetch(`http://localhost:5000/api/workspace/departments/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${t}` } }); loadData(); };
+  const confirmDelete = async () => {
+    if (!deleteDept) return;
+    try {
+      const t = localStorage.getItem("token");
+      await fetch(`http://localhost:5000/api/workspace/departments/${deleteDept._id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${t}` },
+      });
+      loadData();
+    } catch (err) {
+      console.error("Failed to delete department:", err);
+    } finally {
+      setDeleteDept(null);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -42,7 +58,7 @@ export default function Departments() {
                   <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center"><Building2 className="w-5 h-5" /></div>
                   <div className="flex gap-1">
                     <button onClick={() => { setEditItem(d); setForm({ name: d.name, budget: d.budget }); setShowForm(true); }} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400"><Edit2 className="w-3.5 h-3.5" /></button>
-                    <button onClick={() => del(d._id)} className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
+                    <button onClick={() => setDeleteDept(d)} className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors cursor-pointer" title="Delete Department"><Trash2 className="w-3.5 h-3.5" /></button>
                   </div>
                 </div>
                 <p className="text-sm font-bold text-[#1F2937] mb-1">{d.name}</p>
@@ -70,6 +86,21 @@ export default function Departments() {
           </div>
         </div>
       )}
+
+      {/* Custom Confirmation Modal */}
+      <ConfirmModal
+        isOpen={Boolean(deleteDept)}
+        onClose={() => setDeleteDept(null)}
+        onConfirm={confirmDelete}
+        title="Delete Department"
+        message={
+          deleteDept
+            ? `Are you sure you want to delete the ${deleteDept.name} department? Department budgets will be removed.`
+            : "Are you sure you want to delete this department?"
+        }
+        confirmText="Delete Department"
+        isDanger={true}
+      />
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Plus, Trash2, Edit2, PiggyBank, Target, Calendar, Check, X, TrendingUp, DollarSign, Landmark, AlertCircle, CheckCircle2 } from "lucide-react";
-import ConfirmModal from "../../components/common/ConfirmModal";
+import ConfirmModal, { AlertModal } from "../../components/common/ConfirmModal";
 
 const API = "http://localhost:5000/api";
 const getToken = () => localStorage.getItem("token");
@@ -36,6 +36,7 @@ export default function SavingsGoals() {
   const [contribAmount, setContribAmount] = useState("");
   const [contribAccount, setContribAccount] = useState("");
   const [contribNote, setContribNote] = useState("");
+  const [alertMessage, setAlertMessage] = useState("");
 
   const [form, setForm] = useState({
     name: "",
@@ -130,7 +131,7 @@ export default function SavingsGoals() {
       });
 
       if (!res.ok) {
-        alert("Failed to save goal.");
+        setAlertMessage("Failed to save goal.");
         return;
       }
 
@@ -156,7 +157,7 @@ export default function SavingsGoals() {
         }),
       });
       if (!res.ok) {
-        alert("Failed to deposit contribution.");
+        setAlertMessage("Failed to deposit contribution.");
         return;
       }
       setContribGoal(null);
@@ -717,6 +718,15 @@ export default function SavingsGoals() {
         message="Are you sure you want to delete this savings goal permanently?"
         confirmText="Delete Goal"
         isDanger={true}
+      />
+
+      {/* Alert Modal */}
+      <AlertModal
+        isOpen={Boolean(alertMessage)}
+        onClose={() => setAlertMessage("")}
+        title="Savings Goal Notice"
+        message={alertMessage}
+        type="warning"
       />
     </div>
   );

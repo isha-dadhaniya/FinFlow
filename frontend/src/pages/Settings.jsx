@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { useWorkspace } from "../context/WorkspaceContext";
 import { updateSelectedModes as apiUpdateSelectedModes, changeUserPassword, createFamilyMember, createEmployee } from "../api/services";
+import { AlertModal } from "../components/common/ConfirmModal";
 
 const BUSINESS_TYPES = [
   "Private Limited (Pvt Ltd)",
@@ -139,13 +140,14 @@ export default function Settings() {
   const [editBusinessPhone, setEditBusinessPhone] = useState("");
   const [editBusinessAddress, setEditBusinessAddress] = useState("");
   const [editFinancialYear, setEditFinancialYear] = useState("FY 2025 - 2026 (Apr - Mar)");
+  const [alertMessage, setAlertMessage] = useState("");
 
   // Logo file upload / removal handlers
   const handleLogoUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 2 * 1024 * 1024) {
-      alert("Logo image size should be less than 2MB.");
+      setAlertMessage("Logo image size should be less than 2MB.");
       return;
     }
     const reader = new FileReader();
@@ -163,7 +165,7 @@ export default function Settings() {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 2 * 1024 * 1024) {
-      alert("Logo image size should be less than 2MB.");
+      setAlertMessage("Logo image size should be less than 2MB.");
       return;
     }
     const reader = new FileReader();
@@ -1545,6 +1547,15 @@ export default function Settings() {
           </div>
         </div>
       )}
+
+      {/* Alert Modal */}
+      <AlertModal
+        isOpen={Boolean(alertMessage)}
+        onClose={() => setAlertMessage("")}
+        title="File Upload Notice"
+        message={alertMessage}
+        type="warning"
+      />
     </div>
   );
 }

@@ -13,6 +13,10 @@ const reimbursementSchema = new mongoose.Schema(
     approvedDate: { type: Date },
     paidDate: { type: Date },
     workspace: { type: String, default: "business" },
+    projectId: { type: mongoose.Schema.Types.ObjectId, ref: "Project" },
+    projectName: { type: String, default: "" },
+    claimType: { type: String, enum: ["claim", "project_expense"], default: "claim" },
+    rejectionReason: { type: String, default: "" },
   },
   { timestamps: true }
 );

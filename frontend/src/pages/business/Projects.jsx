@@ -11,6 +11,8 @@ import {
   FileText,
   CheckCircle2,
   AlertCircle,
+  Clock,
+  XCircle,
   TrendingDown,
   TrendingUp,
   WalletCards,
@@ -266,6 +268,17 @@ export default function Projects() {
       return;
     }
 
+    // Check project remaining balance
+    const currentBudget = Number(expenseModalProject.budget) || 0;
+    const currentSpent = Number(expenseModalProject.expenses) || 0;
+    const currentRemaining = Math.max(0, currentBudget - currentSpent);
+    if (amountVal > currentRemaining) {
+      setAlertModalMessage(
+        `Expense amount (${formatCurrency(amountVal)}) cannot exceed project remaining balance of ${formatCurrency(currentRemaining)}.`
+      );
+      return;
+    }
+
     try {
       setIsSubmittingExpense(true);
       const res = await fetch(`${API}/workspace/projects/${expenseModalProject._id}/expenses`, {
@@ -289,6 +302,9 @@ export default function Projects() {
         // Auto-expand this project's expenses so user sees it right away!
         setExpandedCards((prev) => ({ ...prev, [updated._id]: true }));
         setExpenseModalProject(null);
+        setAlertModalMessage(
+          "Expense submitted for approval! Go to Business > Approvals to review and approve it. It will deduct from the project remaining balance once approved."
+        );
       } else {
         const errData = await res.json().catch(() => ({}));
         setAlertModalMessage(errData.message || "Failed to save project expense. Please check input.");
@@ -499,11 +515,16 @@ export default function Projects() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           {filteredProjects.map((p) => {
             const budgetVal = Number(p.budget) || 0;
-            const expensesVal = Number(p.expenses) || 0;
-            const remainingVal = budgetVal - expensesVal;
-            const isOverBudget = remainingVal < 0;
-            const usagePercent = budgetVal > 0 ? Math.min(100, Math.round((expensesVal / budgetVal) * 100)) : 0;
             const expenseItems = Array.isArray(p.expenseItems) ? p.expenseItems : [];
+            const approvedItems = expenseItems.filter(
+              (it) => it.status === "Approved" || (!it.status && it.status !== "Pending" && it.status !== "Rejected")
+            );
+            const pendingItems = expenseItems.filter((it) => it.status === "Pending");
+            const rejectedItems = expenseItems.filter((it) => it.status === "Rejected");
+            const expensesVal = approvedItems.reduce((sum, it) => sum + (Number(it.amount) || 0), 0);
+            const remainingVal = Math.max(0, budgetVal - expensesVal);
+            const isOverBudget = expensesVal > budgetVal;
+            const usagePercent = budgetVal > 0 ? Math.min(100, Math.round((expensesVal / budgetVal) * 100)) : 0;
             const isExpanded = !!expandedCards[p._id];
 
             return (
@@ -569,13 +590,18 @@ export default function Projects() {
                       <div className="pl-2">
                         <p className="text-[10px] font-semibold text-rose-600 uppercase tracking-wider flex items-center justify-center gap-1">
                           Spent
-                          {expenseItems.length > 0 && (
+                          {approvedItems.length > 0 && (
                             <span className="text-[9px] bg-rose-100 text-rose-700 px-1 py-0.2 rounded-full font-bold">
-                              {expenseItems.length}
+                              {approvedItems.length}
                             </span>
                           )}
                         </p>
                         <p className="text-sm font-extrabold text-rose-600 mt-0.5">{formatCurrency(expensesVal)}</p>
+                        {pendingItems.length > 0 && (
+                          <p className="text-[9px] text-amber-600 font-semibold mt-0.5">
+                            {pendingItems.length} pending
+                          </p>
+                        )}
                       </div>
 
                       {/* Remaining Balance */}
@@ -645,6 +671,11 @@ export default function Projects() {
                   >
                     <Receipt className="w-3.5 h-3.5 text-[#005B4F]" />
                     <span>Expenses ({expenseItems.length})</span>
+                    {pendingItems.length > 0 && (
+                      <span className="px-1.5 py-0.2 text-[9px] bg-amber-100 text-amber-800 rounded-full font-bold">
+                        {pendingItems.length} pending
+                      </span>
+                    )}
                     {isExpanded ? <ChevronUp className="w-3.5 h-3.5 ml-0.5" /> : <ChevronDown className="w-3.5 h-3.5 ml-0.5" />}
                   </button>
 
@@ -660,12 +691,17 @@ export default function Projects() {
                 {/* ── Inline Expandable Expense Panel ── */}
                 {isExpanded && (
                   <div className="bg-[#F8FAFC] border-t border-[#E5E7EB] p-4.5 space-y-3 animate-fadeIn">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-xs font-bold text-[#1F2937]">Recorded Expenses</span>
                         <span className="text-[10px] bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full font-bold">
-                          - {formatCurrency(expensesVal)}
+                          - {formatCurrency(expensesVal)} deducted
                         </span>
+                        {pendingItems.length > 0 && (
+                          <span className="text-[10px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full font-bold">
+                            {formatCurrency(pendingItems.reduce((s, it) => s + (Number(it.amount) || 0), 0))} pending approval
+                          </span>
+                        )}
                       </div>
                       <button
                         onClick={() => openAddExpenseModal(p)}
@@ -680,7 +716,7 @@ export default function Projects() {
                         <Receipt className="w-6 h-6 text-gray-400 mx-auto mb-1.5" />
                         <p className="text-xs font-semibold text-[#4B5563]">No expenses recorded yet</p>
                         <p className="text-[11px] text-gray-400 mt-0.5">
-                          Track project materials, labour, or vendor spend to deduct from remaining balance.
+                          Track project materials, labour, or vendor spend to deduct from remaining balance once approved.
                         </p>
                         <button
                           onClick={() => openAddExpenseModal(p)}
@@ -691,47 +727,107 @@ export default function Projects() {
                       </div>
                     ) : (
                       <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-                        {expenseItems.map((item) => (
-                          <div
-                            key={item._id}
-                            className="bg-white rounded-xl border border-[#E5E7EB] p-2.5 flex items-center justify-between gap-3 hover:border-gray-300 transition-colors shadow-2xs"
-                          >
-                            <div className="min-w-0 flex items-center gap-2.5">
-                              <span
-                                className={`text-[10px] font-bold px-2 py-0.5 rounded-md border shrink-0 ${getCategoryBadgeClass(
-                                  item.category
-                                )}`}
-                              >
-                                {item.category || "General"}
-                              </span>
-                              <div className="min-w-0">
-                                <p className="text-xs font-bold text-[#1F2937] truncate">{item.title}</p>
-                                <div className="flex items-center gap-1 text-[10px] text-gray-400">
-                                  <span>{formatDateDisplay(item.date)}</span>
-                                  {item.notes && (
-                                    <>
-                                      <span>·</span>
-                                      <span className="truncate max-w-[140px] text-gray-500">{item.notes}</span>
-                                    </>
+                        {expenseItems.map((item) => {
+                          const isPending = item.status === "Pending";
+                          const isRejected = item.status === "Rejected";
+                          const isApproved = !isPending && !isRejected;
+
+                          return (
+                            <div
+                              key={item._id}
+                              className={`bg-white rounded-xl border p-2.5 flex items-center justify-between gap-3 transition-colors shadow-2xs ${
+                                isRejected
+                                  ? "border-rose-200 bg-rose-50/20"
+                                  : isPending
+                                  ? "border-amber-200 bg-amber-50/20"
+                                  : "border-[#E5E7EB] hover:border-gray-300"
+                              }`}
+                            >
+                              <div className="min-w-0 flex items-center gap-2.5">
+                                <span
+                                  className={`text-[10px] font-bold px-2 py-0.5 rounded-md border shrink-0 ${getCategoryBadgeClass(
+                                    item.category
+                                  )}`}
+                                >
+                                  {item.category || "General"}
+                                </span>
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <p className="text-xs font-bold text-[#1F2937] truncate">{item.title}</p>
+                                    {isPending && (
+                                      <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-0.5 shrink-0">
+                                        <Clock className="w-2.5 h-2.5" /> Pending Approval
+                                      </span>
+                                    )}
+                                    {isApproved && (
+                                      <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-0.5 shrink-0">
+                                        <CheckCircle2 className="w-2.5 h-2.5" /> Approved
+                                      </span>
+                                    )}
+                                    {isRejected && (
+                                      <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-rose-50 text-rose-700 border border-rose-200 flex items-center gap-0.5 shrink-0">
+                                        <XCircle className="w-2.5 h-2.5" /> Rejected
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-1 text-[10px] text-gray-400">
+                                    <span>{formatDateDisplay(item.date)}</span>
+                                    {item.notes && (
+                                      <>
+                                        <span>·</span>
+                                        <span className="truncate max-w-[140px] text-gray-500">{item.notes}</span>
+                                      </>
+                                    )}
+                                  </div>
+                                  {isRejected && item.rejectionReason && (
+                                    <p className="text-[10px] text-rose-600 bg-rose-50 px-2 py-0.5 rounded border border-rose-100 mt-1">
+                                      <strong>Rejection Reason:</strong> {item.rejectionReason}
+                                    </p>
                                   )}
                                 </div>
                               </div>
-                            </div>
 
-                            <div className="flex items-center gap-2 shrink-0">
-                              <span className="text-xs font-bold text-rose-600">
-                                - {formatCurrency(item.amount)}
-                              </span>
-                              <button
-                                onClick={() => setDeleteExpenseModal({ projectId: p._id, expenseId: item._id, title: item.title, amount: item.amount })}
-                                className="p-1 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
-                                title="Delete expense"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
+                              <div className="flex items-center gap-2 shrink-0">
+                                {isApproved && (
+                                  <span className="text-xs font-bold text-rose-600">
+                                    - {formatCurrency(item.amount)}
+                                  </span>
+                                )}
+                                {isPending && (
+                                  <div className="text-right">
+                                    <span className="text-xs font-bold text-amber-700">
+                                      {formatCurrency(item.amount)}
+                                    </span>
+                                    <span className="text-[9px] text-amber-600 block">(pending)</span>
+                                  </div>
+                                )}
+                                {isRejected && (
+                                  <div className="text-right">
+                                    <span className="text-xs font-bold text-gray-400 line-through">
+                                      {formatCurrency(item.amount)}
+                                    </span>
+                                    <span className="text-[9px] text-rose-600 block">(not deducted)</span>
+                                  </div>
+                                )}
+
+                                <button
+                                  onClick={() =>
+                                    setDeleteExpenseModal({
+                                      projectId: p._id,
+                                      expenseId: item._id,
+                                      title: item.title,
+                                      amount: item.amount,
+                                    })
+                                  }
+                                  className="p-1 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                                  title="Delete expense"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
                   </div>
@@ -773,41 +869,54 @@ export default function Projects() {
             {/* Live Financial Feedback Card */}
             {(() => {
               const currentBudget = Number(expenseModalProject.budget) || 0;
-              const currentSpent = Number(expenseModalProject.expenses) || 0;
-              const currentRemaining = currentBudget - currentSpent;
+              const expenseItems = Array.isArray(expenseModalProject.expenseItems) ? expenseModalProject.expenseItems : [];
+              const approvedItems = expenseItems.filter(
+                (it) => it.status === "Approved" || (!it.status && it.status !== "Pending" && it.status !== "Rejected")
+              );
+              const currentSpent = approvedItems.reduce((s, it) => s + (Number(it.amount) || 0), 0);
+              const currentRemaining = Math.max(0, currentBudget - currentSpent);
               const enteredAmount = Number(expenseForm.amount) || 0;
+              const isExceeded = enteredAmount > currentRemaining;
               const newRemaining = currentRemaining - enteredAmount;
-              const isExceeded = newRemaining < 0;
 
               return (
-                <div className="px-6 pt-4 pb-1">
+                <div className="px-6 pt-4 pb-1 space-y-2">
+                  <div className="text-[11px] text-[#005B4F] bg-[#005B4F]/5 border border-[#005B4F]/20 rounded-xl p-3 flex items-start gap-2">
+                    <Clock className="w-4 h-4 text-[#005B4F] shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-bold">Approval Workflow Active</p>
+                      <p className="text-[10px] text-gray-600 mt-0.5">
+                        This expense will be sent to <strong>Business Approvals</strong>. It will deduct from the project budget <strong>only if accepted</strong>. If rejected, it will not deduct.
+                      </p>
+                    </div>
+                  </div>
+
                   <div
                     className={`rounded-xl p-3.5 border transition-all ${
                       isExceeded
-                        ? "bg-rose-50/70 border-rose-200"
+                        ? "bg-rose-50 border-rose-300"
                         : enteredAmount > 0
                         ? "bg-emerald-50/70 border-emerald-200"
                         : "bg-[#F9FAFB] border-gray-200"
                     }`}
                   >
                     <div className="flex items-center justify-between text-xs">
-                      <span className="text-[#6B7280]">Current Remaining:</span>
-                      <span className="font-bold text-[#1F2937]">{formatCurrency(currentRemaining)}</span>
+                      <span className="text-[#6B7280]">Current Remaining Balance:</span>
+                      <span className="font-extrabold text-[#1F2937]">{formatCurrency(currentRemaining)}</span>
                     </div>
 
-                    {enteredAmount > 0 && (
-                      <div className="flex items-center justify-between text-xs mt-1.5 pt-1.5 border-t border-gray-200/60">
-                        <span className={`font-semibold ${isExceeded ? "text-rose-700" : "text-emerald-700"}`}>
-                          {isExceeded ? "Over Budget Deficit:" : "Projected Remaining:"}
-                        </span>
-                        <span
-                          className={`text-sm font-extrabold ${
-                            isExceeded ? "text-rose-700" : "text-emerald-700"
-                          }`}
-                        >
-                          {formatCurrency(newRemaining)}
-                        </span>
+                    {isExceeded ? (
+                      <div className="mt-2 pt-2 border-t border-rose-200 text-xs text-rose-700 font-semibold flex items-center gap-1.5">
+                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                        <span>Cannot use more than remaining balance ({formatCurrency(currentRemaining)})!</span>
                       </div>
+                    ) : (
+                      enteredAmount > 0 && (
+                        <div className="flex items-center justify-between text-xs mt-1.5 pt-1.5 border-t border-gray-200/60">
+                          <span className="font-semibold text-emerald-700">Projected Balance (if approved):</span>
+                          <span className="text-sm font-extrabold text-emerald-700">{formatCurrency(newRemaining)}</span>
+                        </div>
+                      )
                     )}
                   </div>
                 </div>
@@ -840,6 +949,10 @@ export default function Projects() {
                     type="number"
                     placeholder="0"
                     min="1"
+                    max={Math.max(
+                      0,
+                      (Number(expenseModalProject.budget) || 0) - (Number(expenseModalProject.expenses) || 0)
+                    )}
                     value={expenseForm.amount}
                     onChange={(e) => setExpenseForm({ ...expenseForm, amount: e.target.value })}
                     required
@@ -866,21 +979,27 @@ export default function Projects() {
               {/* Quick Amount Pills */}
               <div className="flex items-center gap-1.5 flex-wrap">
                 <span className="text-[10px] text-gray-400 font-semibold mr-1">Quick:</span>
-                {[500, 1000, 2500, 5000].map((amt) => (
-                  <button
-                    key={amt}
-                    type="button"
-                    onClick={() =>
-                      setExpenseForm((prev) => ({
-                        ...prev,
-                        amount: String((Number(prev.amount) || 0) + amt),
-                      }))
-                    }
-                    className="px-2 py-0.5 text-[10px] font-semibold bg-gray-100 hover:bg-[#005B4F]/10 hover:text-[#005B4F] rounded-md transition-colors"
-                  >
-                    +{formatCurrency(amt)}
-                  </button>
-                ))}
+                {[500, 1000, 2500, 5000].map((amt) => {
+                  const currentRemaining = Math.max(
+                    0,
+                    (Number(expenseModalProject.budget) || 0) - (Number(expenseModalProject.expenses) || 0)
+                  );
+                  return (
+                    <button
+                      key={amt}
+                      type="button"
+                      onClick={() =>
+                        setExpenseForm((prev) => ({
+                          ...prev,
+                          amount: String(Math.min(currentRemaining, (Number(prev.amount) || 0) + amt)),
+                        }))
+                      }
+                      className="px-2 py-0.5 text-[10px] font-semibold bg-gray-100 hover:bg-[#005B4F]/10 hover:text-[#005B4F] rounded-md transition-colors cursor-pointer"
+                    >
+                      +{formatCurrency(amt)}
+                    </button>
+                  );
+                })}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -910,16 +1029,25 @@ export default function Projects() {
                 <button
                   type="button"
                   onClick={() => setExpenseModalProject(null)}
-                  className="px-4 py-2 border border-[#E5E7EB] rounded-xl text-xs font-semibold text-[#4B5563] hover:bg-gray-50 transition-colors"
+                  className="px-4 py-2 border border-[#E5E7EB] rounded-xl text-xs font-semibold text-[#4B5563] hover:bg-gray-50 transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={isSubmittingExpense}
-                  className="px-5 py-2 bg-[#005B4F] text-white text-xs font-semibold rounded-xl hover:bg-[#004A40] shadow-sm shadow-[#005B4F]/20 active:scale-[0.98] transition-all disabled:opacity-50"
+                  disabled={
+                    isSubmittingExpense ||
+                    !expenseForm.title.trim() ||
+                    Number(expenseForm.amount) <= 0 ||
+                    Number(expenseForm.amount) >
+                      Math.max(
+                        0,
+                        (Number(expenseModalProject.budget) || 0) - (Number(expenseModalProject.expenses) || 0)
+                      )
+                  }
+                  className="px-5 py-2 bg-[#005B4F] text-white text-xs font-semibold rounded-xl hover:bg-[#004A40] shadow-sm shadow-[#005B4F]/20 active:scale-[0.98] transition-all disabled:opacity-50 cursor-pointer"
                 >
-                  {isSubmittingExpense ? "Saving..." : "Save & Deduct"}
+                  {isSubmittingExpense ? "Submitting..." : "Submit for Approval"}
                 </button>
               </div>
             </form>
@@ -1156,13 +1284,18 @@ export default function Projects() {
               {/* Financial Status Summary */}
               {(() => {
                 const b = Number(detailProject.budget) || 0;
-                const exp = Number(detailProject.expenses) || 0;
-                const rem = b - exp;
-                const pct = b > 0 ? Math.min(100, Math.round((exp / b) * 100)) : 0;
                 const items = Array.isArray(detailProject.expenseItems) ? detailProject.expenseItems : [];
+                const approvedItems = items.filter(
+                  (it) => it.status === "Approved" || (!it.status && it.status !== "Pending" && it.status !== "Rejected")
+                );
+                const pendingItems = items.filter((it) => it.status === "Pending");
+                const rejectedItems = items.filter((it) => it.status === "Rejected");
+                const exp = approvedItems.reduce((s, it) => s + (Number(it.amount) || 0), 0);
+                const rem = Math.max(0, b - exp);
+                const pct = b > 0 ? Math.min(100, Math.round((exp / b) * 100)) : 0;
 
-                // Category Breakdown
-                const categoryBreakdown = items.reduce((acc, it) => {
+                // Category Breakdown based only on approved expenses
+                const categoryBreakdown = approvedItems.reduce((acc, it) => {
                   const cat = it.category || "General";
                   acc[cat] = (acc[cat] || 0) + (Number(it.amount) || 0);
                   return acc;
@@ -1178,18 +1311,23 @@ export default function Projects() {
                       <div>
                         <p className="text-[10px] font-semibold text-rose-600 uppercase tracking-wider">Total Spent</p>
                         <p className="text-lg font-extrabold text-rose-600 mt-1">{formatCurrency(exp)}</p>
+                        {pendingItems.length > 0 && (
+                          <p className="text-[10px] text-amber-600 font-semibold mt-0.5">
+                            {pendingItems.length} pending approval
+                          </p>
+                        )}
                       </div>
                       <div>
                         <p
                           className={`text-[10px] font-semibold uppercase tracking-wider ${
-                            rem < 0 ? "text-rose-600" : "text-emerald-700"
+                            rem <= 0 ? "text-rose-600" : "text-emerald-700"
                           }`}
                         >
                           Remaining
                         </p>
                         <p
                           className={`text-lg font-extrabold mt-1 ${
-                            rem < 0 ? "text-rose-600" : "text-emerald-700"
+                            rem <= 0 ? "text-rose-600" : "text-emerald-700"
                           }`}
                         >
                           {formatCurrency(rem)}
@@ -1201,7 +1339,7 @@ export default function Projects() {
                     {Object.keys(categoryBreakdown).length > 0 && (
                       <div>
                         <p className="text-xs font-bold text-[#1F2937] mb-2 flex items-center gap-1.5">
-                          <PieChart className="w-3.5 h-3.5 text-[#005B4F]" /> Spending by Category
+                          <PieChart className="w-3.5 h-3.5 text-[#005B4F]" /> Spending by Category (Approved)
                         </p>
                         <div className="flex items-center gap-2 flex-wrap">
                           {Object.entries(categoryBreakdown).map(([cat, amt]) => (
@@ -1232,51 +1370,110 @@ export default function Projects() {
                           <Receipt className="w-8 h-8 text-gray-300 mx-auto mb-2" />
                           <p className="text-xs font-semibold text-[#4B5563]">No expenses recorded yet</p>
                           <p className="text-[11px] text-gray-400 mt-0.5">
-                            Click "+ Add Expense" above to deduct from this project's budget.
+                            Click "+ Add Expense" above to submit an expense for approval.
                           </p>
                         </div>
                       ) : (
                         <div className="border border-[#E5E7EB] rounded-xl overflow-hidden divide-y divide-[#F3F4F6]">
-                          {items.map((it) => (
-                            <div key={it._id} className="p-3.5 flex items-center justify-between hover:bg-gray-50/70">
-                              <div className="min-w-0">
-                                <div className="flex items-center gap-2">
-                                  <span
-                                    className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${getCategoryBadgeClass(
-                                      it.category
-                                    )}`}
-                                  >
-                                    {it.category || "General"}
-                                  </span>
-                                  <p className="text-xs font-bold text-[#1F2937] truncate">{it.title}</p>
-                                </div>
-                                <div className="flex items-center gap-1.5 text-[11px] text-gray-400 mt-1">
-                                  <span>{formatDateDisplay(it.date)}</span>
-                                  {it.notes && (
-                                    <>
-                                      <span>·</span>
-                                      <span className="text-gray-500 truncate max-w-xs">{it.notes}</span>
-                                    </>
+                          {items.map((it) => {
+                            const isPending = it.status === "Pending";
+                            const isRejected = it.status === "Rejected";
+                            const isApproved = !isPending && !isRejected;
+
+                            return (
+                              <div
+                                key={it._id}
+                                className={`p-3.5 flex items-center justify-between transition-colors ${
+                                  isRejected
+                                    ? "bg-rose-50/20"
+                                    : isPending
+                                    ? "bg-amber-50/20"
+                                    : "hover:bg-gray-50/70"
+                                }`}
+                              >
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span
+                                      className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${getCategoryBadgeClass(
+                                        it.category
+                                      )}`}
+                                    >
+                                      {it.category || "General"}
+                                    </span>
+                                    <p className="text-xs font-bold text-[#1F2937] truncate">{it.title}</p>
+                                    {isPending && (
+                                      <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-0.5 shrink-0">
+                                        <Clock className="w-2.5 h-2.5" /> Pending Approval
+                                      </span>
+                                    )}
+                                    {isApproved && (
+                                      <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-0.5 shrink-0">
+                                        <CheckCircle2 className="w-2.5 h-2.5" /> Approved
+                                      </span>
+                                    )}
+                                    {isRejected && (
+                                      <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-rose-50 text-rose-700 border border-rose-200 flex items-center gap-0.5 shrink-0">
+                                        <XCircle className="w-2.5 h-2.5" /> Rejected
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-1.5 text-[11px] text-gray-400 mt-1">
+                                    <span>{formatDateDisplay(it.date)}</span>
+                                    {it.notes && (
+                                      <>
+                                        <span>·</span>
+                                        <span className="text-gray-500 truncate max-w-xs">{it.notes}</span>
+                                      </>
+                                    )}
+                                  </div>
+                                  {isRejected && it.rejectionReason && (
+                                    <p className="text-[10px] text-rose-600 bg-rose-50 px-2 py-0.5 rounded border border-rose-100 mt-1.5">
+                                      <strong>Rejection Reason:</strong> {it.rejectionReason}
+                                    </p>
                                   )}
                                 </div>
-                              </div>
 
-                              <div className="flex items-center gap-3">
-                                <span className="text-xs font-extrabold text-rose-600">
-                                  - {formatCurrency(it.amount)}
-                                </span>
-                                <button
-                                  onClick={() =>
-                                    setDeleteExpenseModal({ projectId: detailProject._id, expenseId: it._id, title: it.title, amount: it.amount })
-                                  }
-                                  className="p-1 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
-                                  title="Delete Expense"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
+                                <div className="flex items-center gap-3 shrink-0">
+                                  {isApproved && (
+                                    <span className="text-xs font-extrabold text-rose-600">
+                                      - {formatCurrency(it.amount)}
+                                    </span>
+                                  )}
+                                  {isPending && (
+                                    <div className="text-right">
+                                      <span className="text-xs font-extrabold text-amber-700">
+                                        {formatCurrency(it.amount)}
+                                      </span>
+                                      <span className="text-[9px] text-amber-600 block">(pending)</span>
+                                    </div>
+                                  )}
+                                  {isRejected && (
+                                    <div className="text-right">
+                                      <span className="text-xs font-extrabold text-gray-400 line-through">
+                                        {formatCurrency(it.amount)}
+                                      </span>
+                                      <span className="text-[9px] text-rose-600 block">(not deducted)</span>
+                                    </div>
+                                  )}
+
+                                  <button
+                                    onClick={() =>
+                                      setDeleteExpenseModal({
+                                        projectId: detailProject._id,
+                                        expenseId: it._id,
+                                        title: it.title,
+                                        amount: it.amount,
+                                      })
+                                    }
+                                    className="p-1 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                                    title="Delete Expense"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
                               </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       )}
                     </div>

@@ -43,7 +43,8 @@ export default function FamilyMembers() {
         console.error("Error loading family members:", err);
         try {
           const token = localStorage.getItem("token");
-          const directRes = await fetch("http://localhost:5000/api/family/members", {
+          const API = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+          const directRes = await fetch(`${API}/family/members`, {
             headers: { Authorization: `Bearer ${token}` },
           });
           const data = await directRes.json();

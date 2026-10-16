@@ -62,8 +62,9 @@ export default function AccountTypeSelection() {
     setIsSubmitting(true);
     try {
       const token = localStorage.getItem('token');
+      const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
-      const response = await fetch('http://localhost:5000/api/auth/selected-modes', {
+      const response = await fetch(`${API}/auth/selected-modes`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -124,11 +125,11 @@ export default function AccountTypeSelection() {
         {/* Header Section */}
         <div className="flex flex-col items-center text-center mb-6">
           {/* FinFlow Logo */}
-          <div className="flex items-center justify-center mb-4">
+          <div className="flex items-center justify-center mb-5">
             <img
               src={finflowLogo}
               alt="FinFlow"
-              className="h-14 sm:h-16 w-auto max-w-[260px] object-contain select-none scale-105 filter drop-shadow-sm"
+              className="h-10 sm:h-11 w-auto max-w-[200px] object-contain select-none"
               draggable="false"
             />
           </div>

@@ -166,6 +166,7 @@ projectController.create = async (req, res) => {
   try {
     const data = { ...req.body, userId: req.user.id };
     if (Array.isArray(data.expenseItems) && data.expenseItems.length > 0) {
+      data.expenseItems = data.expenseItems.map((item) => ({ ...item, status: "Approved", rejectionReason: "" }));
       data.expenses = data.expenseItems.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
     }
     const item = await Project.create(data);
@@ -175,7 +176,10 @@ projectController.create = async (req, res) => {
   }
 };
 
-// Custom: Add expense to a project (deducts from remaining budget)
+// Helper to determine if an expense item counts as approved
+const isApprovedExpenseItem = (item) => item.status === "Approved" || (!item.status && item.status !== "Pending" && item.status !== "Rejected");
+
+// Custom: Add expense to a project (routed to Approval queue first, deducted upon approval)
 projectController.addExpense = async (req, res) => {
   try {
     const userId = req.user?.id || req.user?._id;
@@ -203,15 +207,51 @@ projectController.addExpense = async (req, res) => {
       project.expenseItems = [];
     }
 
+    // Calculate current remaining balance based on approved expenses
+    const approvedExpenses = project.expenseItems
+      .filter(isApprovedExpenseItem)
+      .reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+    const budget = Number(project.budget) || 0;
+    const remainingBalance = Math.max(0, budget - approvedExpenses);
+
+    // CRITICAL: Do not allow using more than remaining balance of project
+    if (numAmount > remainingBalance) {
+      return res.status(400).json({
+        message: `Expense amount (₹${numAmount.toLocaleString("en-IN")}) cannot exceed project remaining balance of ₹${remainingBalance.toLocaleString("en-IN")}.`,
+      });
+    }
+
+    // 1. Create a Reimbursement / Approval Claim in Business workspace
+    const claim = await Reimbursement.create({
+      userId: userId || project.userId,
+      employeeName: `${project.name} (Project)`,
+      amount: numAmount,
+      description: (title || "").trim() || "Project Expense",
+      category: category || "General",
+      status: "Submitted", // Goes into approval queue
+      submittedDate: date ? new Date(date) : new Date(),
+      workspace: "business",
+      projectId: project._id,
+      projectName: project.name,
+      claimType: "project_expense",
+    });
+
+    // 2. Add to project.expenseItems with status: "Pending"
     project.expenseItems.push({
       title: (title || "").trim() || "Project Expense",
       amount: numAmount,
       category: category || "General",
       date: date ? new Date(date) : new Date(),
       notes: (notes || "").trim(),
+      status: "Pending",
+      reimbursementId: claim._id,
+      rejectionReason: "",
     });
 
-    project.expenses = project.expenseItems.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+    // project.expenses ONLY counts Approved items (does NOT deduct until accepted/approved)
+    project.expenses = project.expenseItems
+      .filter(isApprovedExpenseItem)
+      .reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
 
     if (userId && !project.userId) {
       project.userId = userId;
@@ -225,7 +265,7 @@ projectController.addExpense = async (req, res) => {
   }
 };
 
-// Custom: Delete a single expense from a project (refunds remaining budget)
+// Custom: Delete a single expense from a project (refunds remaining budget and cleans up approval claim)
 projectController.deleteExpense = async (req, res) => {
   try {
     const userId = req.user?.id || req.user?._id;
@@ -247,13 +287,162 @@ projectController.deleteExpense = async (req, res) => {
       return res.status(404).json({ message: "Expense item not found" });
     }
 
+    const removedItem = project.expenseItems[expenseIndex];
+
+    // If there is an associated reimbursement claim, delete it too
+    if (removedItem.reimbursementId) {
+      await Reimbursement.findByIdAndDelete(removedItem.reimbursementId).catch(() => {});
+    }
+
     project.expenseItems.splice(expenseIndex, 1);
-    project.expenses = project.expenseItems.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+    project.expenses = project.expenseItems
+      .filter(isApprovedExpenseItem)
+      .reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
     await project.save();
     return res.status(200).json(project);
   } catch (error) {
     console.error("projectController.deleteExpense error:", error);
     return res.status(500).json({ message: error.message || "Failed to delete project expense" });
+  }
+};
+
+// Custom: Update reimbursement / approval claim with budget deduction & reason
+reimbursementController.update = async (req, res) => {
+  try {
+    const userId = req.user?.id || req.user?._id;
+    const reimbursement = await Reimbursement.findOne({ _id: req.params.id, userId });
+    if (!reimbursement) {
+      return res.status(404).json({ message: "Approval claim not found" });
+    }
+
+    const { status, rejectionReason } = req.body;
+
+    if (status === "Rejected") {
+      const reason = (rejectionReason || req.body.reason || "").trim();
+      if (!reason) {
+        return res.status(400).json({ message: "Rejection reason is required when rejecting an approval." });
+      }
+
+      reimbursement.status = "Rejected";
+      reimbursement.rejectionReason = reason;
+
+      // If associated with a project, update project expenseItem status and do NOT deduct from budget
+      if (reimbursement.projectId) {
+        const project = await Project.findById(reimbursement.projectId);
+        if (project && Array.isArray(project.expenseItems)) {
+          const expItem = project.expenseItems.find(
+            (item) => item.reimbursementId && item.reimbursementId.toString() === reimbursement._id.toString()
+          );
+          if (expItem) {
+            expItem.status = "Rejected";
+            expItem.rejectionReason = reason;
+          }
+          // Recalculate expenses: ONLY count Approved expenses
+          project.expenses = project.expenseItems
+            .filter(isApprovedExpenseItem)
+            .reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+          await project.save();
+        }
+      }
+    } else if (status === "Approved") {
+      // If associated with a project, check remaining balance and deduct from project budget
+      if (reimbursement.projectId) {
+        const project = await Project.findById(reimbursement.projectId);
+        if (project) {
+          if (!Array.isArray(project.expenseItems)) {
+            project.expenseItems = [];
+          }
+
+          // Calculate remaining balance before this approval (ignoring this pending item)
+          const currentlyApproved = project.expenseItems
+            .filter(
+              (i) =>
+                isApprovedExpenseItem(i) &&
+                (!i.reimbursementId || i.reimbursementId.toString() !== reimbursement._id.toString())
+            )
+            .reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+
+          const currentRemaining = Math.max(0, (Number(project.budget) || 0) - currentlyApproved);
+
+          if (reimbursement.amount > currentRemaining) {
+            return res.status(400).json({
+              message: `Cannot approve: Expense amount (₹${reimbursement.amount.toLocaleString(
+                "en-IN"
+              )}) exceeds project remaining balance of ₹${currentRemaining.toLocaleString("en-IN")}.`,
+            });
+          }
+
+          const expItem = project.expenseItems.find(
+            (item) => item.reimbursementId && item.reimbursementId.toString() === reimbursement._id.toString()
+          );
+          if (expItem) {
+            expItem.status = "Approved";
+            expItem.rejectionReason = "";
+          } else {
+            project.expenseItems.push({
+              title: reimbursement.description || "Project Expense",
+              amount: reimbursement.amount,
+              category: reimbursement.category || "General",
+              date: reimbursement.submittedDate || new Date(),
+              notes: "",
+              status: "Approved",
+              reimbursementId: reimbursement._id,
+              rejectionReason: "",
+            });
+          }
+
+          project.expenses = project.expenseItems
+            .filter(isApprovedExpenseItem)
+            .reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+          await project.save();
+        }
+      }
+
+      reimbursement.status = "Approved";
+      reimbursement.approvedDate = new Date();
+      reimbursement.rejectionReason = "";
+    } else {
+      if (status) reimbursement.status = status;
+      if (req.body.paidDate) reimbursement.paidDate = req.body.paidDate;
+      if (status === "Paid" && !reimbursement.paidDate) reimbursement.paidDate = new Date();
+      if (rejectionReason !== undefined) reimbursement.rejectionReason = rejectionReason;
+    }
+
+    if (req.body.description) reimbursement.description = req.body.description;
+    if (req.body.category) reimbursement.category = req.body.category;
+    if (req.body.amount && Number(req.body.amount) > 0) reimbursement.amount = Number(req.body.amount);
+
+    await reimbursement.save();
+    return res.json(reimbursement);
+  } catch (error) {
+    console.error("reimbursementController.update error:", error);
+    return res.status(500).json({ message: error.message || "Failed to update reimbursement claim" });
+  }
+};
+
+// Custom: Delete reimbursement claim (also clean up linked project expense item)
+reimbursementController.delete = async (req, res) => {
+  try {
+    const userId = req.user?.id || req.user?._id;
+    const reimbursement = await Reimbursement.findOneAndDelete({ _id: req.params.id, userId });
+    if (!reimbursement) return res.status(404).json({ message: "Reimbursement claim not found" });
+
+    if (reimbursement.projectId) {
+      const project = await Project.findById(reimbursement.projectId);
+      if (project && Array.isArray(project.expenseItems)) {
+        project.expenseItems = project.expenseItems.filter(
+          (item) => !item.reimbursementId || item.reimbursementId.toString() !== reimbursement._id.toString()
+        );
+        project.expenses = project.expenseItems
+          .filter(isApprovedExpenseItem)
+          .reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+        await project.save();
+      }
+    }
+
+    return res.json({ message: "Reimbursement claim deleted" });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
   }
 };
 

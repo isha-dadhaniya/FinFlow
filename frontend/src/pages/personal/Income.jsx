@@ -16,7 +16,7 @@ import { Link } from "react-router-dom";
 import BankAccountRequiredModal from "../../components/common/BankAccountRequiredModal";
 import ConfirmModal from "../../components/common/ConfirmModal";
 
-const API = "http://localhost:5000/api";
+const API = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 const getToken = () => localStorage.getItem("token");
 const headers = () => ({
   "Content-Type": "application/json",

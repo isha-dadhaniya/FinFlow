@@ -360,11 +360,11 @@ export default function SignUp() {
         {/* Top Section */}
         <div className="flex flex-col items-center text-center mb-8">
           {/* FinFlow Logo */}
-          <div className="flex items-center justify-center mb-5">
+          <div className="flex items-center justify-center mb-6">
             <img
               src={finflowLogo}
               alt="FinFlow"
-              className="h-20 sm:h-28 md:h-[110px] w-auto max-w-[400px] object-contain select-none scale-110 filter drop-shadow-sm"
+              className="h-10 sm:h-11 w-auto max-w-[200px] object-contain select-none"
               draggable="false"
             />
           </div>

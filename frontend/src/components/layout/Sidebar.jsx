@@ -38,17 +38,17 @@ export default function Sidebar({ isCollapsed, onToggleCollapse, onItemClick }) 
     >
       {/* Top Header Logo */}
       <div>
-        <div className="h-[84px] px-4 flex items-center justify-start border-b border-white/10">
+        <div className="h-[80px] px-5 flex items-center justify-start border-b border-white/10">
           {!isCollapsed ? (
-            <div className="flex items-center justify-start w-full py-1">
+            <div className="flex items-center justify-start w-full">
               <img
                 src={finflowLogo}
                 alt="FinFlow"
-                className="h-16 sm:h-20 max-h-20 w-auto max-w-[210px] object-contain brightness-0 invert scale-110 origin-left"
+                className="h-8 max-h-8 w-auto object-contain brightness-0 invert"
               />
             </div>
           ) : (
-            <div className={`w-11 h-11 rounded-xl ${accent.bg} text-white flex items-center justify-center font-bold text-xl shadow-md mx-auto`}>
+            <div className={`w-10 h-10 rounded-xl ${accent.bg} text-white flex items-center justify-center font-bold text-lg shadow-md mx-auto`}>
               FF
             </div>
           )}

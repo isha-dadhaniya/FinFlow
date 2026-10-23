@@ -1,10 +1,7 @@
 const path = require("path");
-const dotenv = require("dotenv");
-
-dotenv.config({ path: path.join(__dirname, "..", ".env"), override: true });
-
 const express = require("express");
 const cors = require("cors");
+const dotenv = require("dotenv");
 
 const connectDB = require("./config/db");
 // Server reloaded with updated family member schema
@@ -30,6 +27,8 @@ const savingsGoalRoutes = require("./routes/savingsGoalRoutes");
 const incomeRoutes = require("./routes/incomeRoutes");
 const workspaceRoutes = require("./routes/workspaceRoutes");
 
+dotenv.config({ path: path.join(__dirname, "..", ".env") });
+
 connectDB();
 
 const app = express();
@@ -39,7 +38,6 @@ app.use(express.json({ limit: "10mb" }));
 
 // API Routes (existing)
 app.use("/api/auth", authRoutes);
-app.use("/auth", authRoutes); // Fallback if client omits /api prefix
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/expenses", expenseRoutes);
 app.use("/api/budgets", budgetRoutes);

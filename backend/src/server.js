@@ -38,6 +38,7 @@ app.use(express.json({ limit: "10mb" }));
 
 // API Routes (existing)
 app.use("/api/auth", authRoutes);
+app.use("/auth", authRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/expenses", expenseRoutes);
 app.use("/api/budgets", budgetRoutes);

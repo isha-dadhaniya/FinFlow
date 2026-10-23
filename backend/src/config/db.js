@@ -19,6 +19,30 @@ const connectDB = async () => {
         console.log(`🔧 Auto-corrected URI scheme to: mongodb+srv://${cleanBody.replace(/:[^@]+@/, ":***@")}`);
       }
     }
+    if (mongoUri.includes("@")) {
+      const schemeMatch = mongoUri.match(/^(mongodb(?:\+srv)?:\/\/)(.+)$/);
+      if (schemeMatch) {
+        const scheme = schemeMatch[1];
+        const rest = schemeMatch[2];
+        const lastAtIndex = rest.lastIndexOf("@");
+        if (lastAtIndex !== -1) {
+          const authPart = rest.substring(0, lastAtIndex);
+          const hostPart = rest.substring(lastAtIndex + 1);
+          const firstColonIndex = authPart.indexOf(":");
+          if (firstColonIndex !== -1) {
+            const rawUser = authPart.substring(0, firstColonIndex);
+            const rawPass = authPart.substring(firstColonIndex + 1);
+            try {
+              const cleanUser = encodeURIComponent(decodeURIComponent(rawUser));
+              const cleanPass = encodeURIComponent(decodeURIComponent(rawPass));
+              mongoUri = `${scheme}${cleanUser}:${cleanPass}@${hostPart}`;
+            } catch (e) {
+              // fallback if decode fails
+            }
+          }
+        }
+      }
+    }
 
     const maskedLog = mongoUri.replace(/\/\/([^:]+):([^@]+)@/, "//$1:***@");
     console.log(`Connecting to MongoDB (${maskedLog})...`);

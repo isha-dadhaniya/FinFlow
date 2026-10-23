@@ -14,10 +14,12 @@ export default function Settlements() {
 
   useEffect(() => { loadData(); }, []);
 
+  const API = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+
   const loadData = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("http://localhost:5000/api/workspace/settlements?workspace=family", { headers: { Authorization: `Bearer ${token}` } });
+      const res = await fetch(`${API}/workspace/settlements?workspace=family`, { headers: { Authorization: `Bearer ${token}` } });
       const data = await res.json();
       setSettlements(Array.isArray(data) ? data : []);
     } catch { setSettlements([]); } finally { setLoading(false); }
@@ -26,7 +28,7 @@ export default function Settlements() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const token = localStorage.getItem("token");
-    await fetch("http://localhost:5000/api/workspace/settlements", {
+    await fetch(`${API}/workspace/settlements`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({ ...form, amount: Number(form.amount), workspace: "family" }),
@@ -36,7 +38,7 @@ export default function Settlements() {
 
   const markSettled = async (id) => {
     const token = localStorage.getItem("token");
-    await fetch(`http://localhost:5000/api/workspace/settlements/${id}/settle`, {
+    await fetch(`${API}/workspace/settlements/${id}/settle`, {
       method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
     });
     loadData();
@@ -45,7 +47,7 @@ export default function Settlements() {
   const confirmDelete = async () => {
     if (!deleteSettlementId) return;
     const token = localStorage.getItem("token");
-    await fetch(`http://localhost:5000/api/workspace/settlements/${deleteSettlementId}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
+    await fetch(`${API}/workspace/settlements/${deleteSettlementId}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
     setDeleteSettlementId(null);
     loadData();
   };

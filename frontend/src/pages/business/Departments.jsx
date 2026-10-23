@@ -13,13 +13,15 @@ export default function Departments() {
 
   useEffect(() => { loadData(); }, []);
 
+  const API = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+
   const loadData = async () => {
-    try { const t = localStorage.getItem("token"); const r = await fetch("http://localhost:5000/api/workspace/departments?workspace=business", { headers: { Authorization: `Bearer ${t}` } }); const d = await r.json(); setDepts(Array.isArray(d) ? d : []); } catch { setDepts([]); } finally { setLoading(false); }
+    try { const t = localStorage.getItem("token"); const r = await fetch(`${API}/workspace/departments?workspace=business`, { headers: { Authorization: `Bearer ${t}` } }); const d = await r.json(); setDepts(Array.isArray(d) ? d : []); } catch { setDepts([]); } finally { setLoading(false); }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault(); const t = localStorage.getItem("token");
-    const url = editItem ? `http://localhost:5000/api/workspace/departments/${editItem._id}` : "http://localhost:5000/api/workspace/departments";
+    const url = editItem ? `${API}/workspace/departments/${editItem._id}` : `${API}/workspace/departments`;
     await fetch(url, { method: editItem ? "PUT" : "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` }, body: JSON.stringify({ ...form, budget: Number(form.budget), workspace: "business" }) });
     setShowForm(false); setEditItem(null); setForm({ name: "", budget: "" }); loadData();
   };
@@ -28,7 +30,7 @@ export default function Departments() {
     if (!deleteDept) return;
     try {
       const t = localStorage.getItem("token");
-      await fetch(`http://localhost:5000/api/workspace/departments/${deleteDept._id}`, {
+      await fetch(`${API}/workspace/departments/${deleteDept._id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${t}` },
       });

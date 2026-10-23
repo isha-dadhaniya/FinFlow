@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { BarChart3, TrendingUp, TrendingDown, PieChart, Calendar, DollarSign, Wallet } from "lucide-react";
 import { useWorkspace } from "../context/WorkspaceContext";
 
-const API = "http://localhost:5000/api";
+const API = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 const getToken = () => localStorage.getItem("token");
 const headers = () => ({ "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` });
 

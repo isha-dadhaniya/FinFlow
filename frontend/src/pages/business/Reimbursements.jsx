@@ -12,15 +12,17 @@ export default function Reimbursements() {
   const [deleteItem, setDeleteItem] = useState(null);
   const [form, setForm] = useState({ employeeName: "", amount: "", description: "", category: "Other", status: "Draft" });
 
+  const API = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+
   useEffect(() => { loadData(); }, []);
-  const loadData = async () => { try { const t = localStorage.getItem("token"); const r = await fetch("http://localhost:5000/api/workspace/reimbursements?workspace=business", { headers: { Authorization: `Bearer ${t}` } }); const d = await r.json(); setItems(Array.isArray(d) ? d : []); } catch { setItems([]); } finally { setLoading(false); } };
-  const handleSubmit = async (e) => { e.preventDefault(); const t = localStorage.getItem("token"); await fetch("http://localhost:5000/api/workspace/reimbursements", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` }, body: JSON.stringify({ ...form, amount: Number(form.amount), workspace: "business" }) }); setShowForm(false); setForm({ employeeName: "", amount: "", description: "", category: "Other", status: "Draft" }); loadData(); };
-  const updateStatus = async (id, status) => { const t = localStorage.getItem("token"); await fetch(`http://localhost:5000/api/workspace/reimbursements/${id}`, { method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` }, body: JSON.stringify({ status }) }); loadData(); };
+  const loadData = async () => { try { const t = localStorage.getItem("token"); const r = await fetch(`${API}/workspace/reimbursements?workspace=business`, { headers: { Authorization: `Bearer ${t}` } }); const d = await r.json(); setItems(Array.isArray(d) ? d : []); } catch { setItems([]); } finally { setLoading(false); } };
+  const handleSubmit = async (e) => { e.preventDefault(); const t = localStorage.getItem("token"); await fetch(`${API}/workspace/reimbursements`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` }, body: JSON.stringify({ ...form, amount: Number(form.amount), workspace: "business" }) }); setShowForm(false); setForm({ employeeName: "", amount: "", description: "", category: "Other", status: "Draft" }); loadData(); };
+  const updateStatus = async (id, status) => { const t = localStorage.getItem("token"); await fetch(`${API}/workspace/reimbursements/${id}`, { method: "PUT", headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` }, body: JSON.stringify({ status }) }); loadData(); };
   const confirmDelete = async () => {
     if (!deleteItem) return;
     try {
       const t = localStorage.getItem("token");
-      await fetch(`http://localhost:5000/api/workspace/reimbursements/${deleteItem._id}`, {
+      await fetch(`${API}/workspace/reimbursements/${deleteItem._id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${t}` },
       });

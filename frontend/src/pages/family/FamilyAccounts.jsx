@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Plus, Edit2, Trash2, Landmark, CreditCard, Wallet, X, Building2, Check, Users } from "lucide-react";
 import ConfirmModal, { AlertModal } from "../../components/common/ConfirmModal";
 
-const API = "http://localhost:5000/api";
+const API = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 const getToken = () => localStorage.getItem("token");
 const headers = () => ({ "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` });
 

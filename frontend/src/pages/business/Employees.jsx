@@ -13,13 +13,15 @@ export default function Employees() {
 
   useEffect(() => { loadData(); }, []);
 
+  const API = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+
   const loadData = async () => {
-    try { const t = localStorage.getItem("token"); const r = await fetch("http://localhost:5000/api/workspace/employees?workspace=business", { headers: { Authorization: `Bearer ${t}` } }); const d = await r.json(); setEmployees(Array.isArray(d) ? d : []); } catch { setEmployees([]); } finally { setLoading(false); }
+    try { const t = localStorage.getItem("token"); const r = await fetch(`${API}/workspace/employees?workspace=business`, { headers: { Authorization: `Bearer ${t}` } }); const d = await r.json(); setEmployees(Array.isArray(d) ? d : []); } catch { setEmployees([]); } finally { setLoading(false); }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault(); const t = localStorage.getItem("token");
-    const url = editItem ? `http://localhost:5000/api/workspace/employees/${editItem._id}` : "http://localhost:5000/api/workspace/employees";
+    const url = editItem ? `${API}/workspace/employees/${editItem._id}` : `${API}/workspace/employees`;
     await fetch(url, { method: editItem ? "PUT" : "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` }, body: JSON.stringify({ ...form, workspace: "business" }) });
     setShowForm(false); setEditItem(null); setForm({ name: "", employeeId: "", department: "IT", designation: "", role: "Employee", email: "", phone: "" }); loadData();
   };
@@ -28,7 +30,7 @@ export default function Employees() {
     if (!deleteEmployee) return;
     try {
       const t = localStorage.getItem("token");
-      await fetch(`http://localhost:5000/api/workspace/employees/${deleteEmployee._id}`, {
+      await fetch(`${API}/workspace/employees/${deleteEmployee._id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${t}` },
       });

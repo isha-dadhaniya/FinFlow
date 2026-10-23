@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { ClipboardCheck, Check, X, AlertCircle, Clock, CheckCircle2, XCircle, Search, Filter, FolderKanban } from "lucide-react";
 
-const API = "http://localhost:5000/api";
+const API = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 const getToken = () => localStorage.getItem("token");
 const headers = () => ({ "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` });
 

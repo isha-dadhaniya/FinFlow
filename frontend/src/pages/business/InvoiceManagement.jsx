@@ -3,7 +3,7 @@ import { Plus, Search, Edit2, Trash2, ReceiptIndianRupee, Download, Printer, Che
 import ConfirmModal from "../../components/common/ConfirmModal";
 import finflowLogo from "../../assets/finflow-logo.png";
 
-const API = "http://localhost:5000/api";
+const API = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 const getToken = () => localStorage.getItem("token");
 const headers = () => ({ "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` });
 

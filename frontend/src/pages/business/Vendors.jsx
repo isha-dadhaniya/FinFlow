@@ -34,10 +34,12 @@ export default function Vendors() {
     loadData();
   }, []);
 
+  const API = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+
   const loadData = async () => {
     try {
       const t = localStorage.getItem("token");
-      const r = await fetch("http://localhost:5000/api/workspace/vendors?workspace=business", {
+      const r = await fetch(`${API}/workspace/vendors?workspace=business`, {
         headers: { Authorization: `Bearer ${t}` },
       });
       const d = await r.json();
@@ -109,8 +111,8 @@ export default function Vendors() {
     try {
       const t = localStorage.getItem("token");
       const url = editItem
-        ? `http://localhost:5000/api/workspace/vendors/${editItem._id}`
-        : "http://localhost:5000/api/workspace/vendors";
+        ? `${API}/workspace/vendors/${editItem._id}`
+        : `${API}/workspace/vendors`;
 
       const res = await fetch(url, {
         method: editItem ? "PUT" : "POST",
@@ -147,7 +149,7 @@ export default function Vendors() {
     if (!deleteVendor) return;
     try {
       const t = localStorage.getItem("token");
-      await fetch(`http://localhost:5000/api/workspace/vendors/${deleteVendor._id}`, {
+      await fetch(`${API}/workspace/vendors/${deleteVendor._id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${t}` },
       });

@@ -583,10 +583,6 @@ export default function LandingPage() {
               <p className="text-sm text-[#475569] leading-relaxed mb-6">
                 Switch effortlessly between Personal Vault, Shared Family, and Business profiles. Accounts and transactions stay strictly partitioned.
               </p>
-              <div className="flex items-center gap-2 text-xs font-bold text-emerald-600">
-                <span>Seamless Switcher</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </div>
             </div>
 
             {/* Feature 2: Project Approvals */}
@@ -598,10 +594,6 @@ export default function LandingPage() {
               <p className="text-sm text-[#475569] leading-relaxed mb-6">
                 Expenses submitted to projects automatically route through an approval gate. Rejected claims preserve remaining project balances.
               </p>
-              <div className="flex items-center gap-2 text-xs font-bold text-blue-600">
-                <span>Zero Budget Overruns</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </div>
             </div>
 
             {/* Feature 3: Live Expense Analytics */}
@@ -613,10 +605,6 @@ export default function LandingPage() {
               <p className="text-sm text-[#475569] leading-relaxed mb-6">
                 Gain instant clarity on cash burn by categories, vendors, and tags with automated categorization and intelligent trend reports.
               </p>
-              <div className="flex items-center gap-2 text-xs font-bold text-purple-600">
-                <span>Interactive Charts</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </div>
             </div>
 
             {/* Feature 4: Family Expense Split */}
@@ -628,10 +616,6 @@ export default function LandingPage() {
               <p className="text-sm text-[#475569] leading-relaxed mb-6">
                 Split groceries, maid payments, school fees, and rent among family members with automated settlement ledgers.
               </p>
-              <div className="flex items-center gap-2 text-xs font-bold text-amber-600">
-                <span>Fair Settlement Ledger</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </div>
             </div>
 
             {/* Feature 5: Invoicing & Vendors */}
@@ -643,10 +627,6 @@ export default function LandingPage() {
               <p className="text-sm text-[#475569] leading-relaxed mb-6">
                 Create clean GST-ready invoices, manage outstanding vendor bills, and monitor payment cycles without extra software.
               </p>
-              <div className="flex items-center gap-2 text-xs font-bold text-teal-600">
-                <span>Print & PDF Export</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </div>
             </div>
 
             {/* Feature 6: Bank-Grade Privacy */}
@@ -658,10 +638,6 @@ export default function LandingPage() {
               <p className="text-sm text-[#475569] leading-relaxed mb-6">
                 Your data is strictly protected with token-based session isolation, encrypted passwords, and multi-tenant security architecture.
               </p>
-              <div className="flex items-center gap-2 text-xs font-bold text-rose-600">
-                <span>256-Bit Protection</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </div>
             </div>
 
           </div>

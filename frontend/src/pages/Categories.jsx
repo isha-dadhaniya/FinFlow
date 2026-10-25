@@ -98,9 +98,8 @@ export default function Categories() {
           <button
             key={t}
             onClick={() => setTypeFilter(t)}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
-              typeFilter === t ? "bg-[#005B4F] text-white" : "bg-white border border-[#E5E7EB] text-[#6B7280] hover:bg-gray-50"
-            }`}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-colors ${typeFilter === t ? "bg-[#005B4F] text-white" : "bg-white border border-[#E5E7EB] text-[#6B7280] hover:bg-gray-50"
+              }`}
           >
             {t === "all" ? "All Categories" : t.charAt(0).toUpperCase() + t.slice(1)}
           </button>

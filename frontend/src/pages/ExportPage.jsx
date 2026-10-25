@@ -84,9 +84,8 @@ export default function ExportPage() {
           <div className="grid grid-cols-2 gap-3">
             <button
               onClick={() => setFormat("csv")}
-              className={`p-4 rounded-xl border flex items-center gap-3 text-left transition-all ${
-                format === "csv" ? "border-[#005B4F] bg-[#005B4F]/5 ring-2 ring-[#005B4F]/20" : "border-[#E5E7EB] hover:bg-gray-50"
-              }`}
+              className={`p-4 rounded-xl border flex items-center gap-3 text-left transition-all ${format === "csv" ? "border-[#005B4F] bg-[#005B4F]/5 ring-2 ring-[#005B4F]/20" : "border-[#E5E7EB] hover:bg-gray-50"
+                }`}
             >
               <FileSpreadsheet className={`w-6 h-6 ${format === "csv" ? "text-[#005B4F]" : "text-gray-400"}`} />
               <div>
@@ -97,9 +96,8 @@ export default function ExportPage() {
 
             <button
               onClick={() => setFormat("json")}
-              className={`p-4 rounded-xl border flex items-center gap-3 text-left transition-all ${
-                format === "json" ? "border-[#005B4F] bg-[#005B4F]/5 ring-2 ring-[#005B4F]/20" : "border-[#E5E7EB] hover:bg-gray-50"
-              }`}
+              className={`p-4 rounded-xl border flex items-center gap-3 text-left transition-all ${format === "json" ? "border-[#005B4F] bg-[#005B4F]/5 ring-2 ring-[#005B4F]/20" : "border-[#E5E7EB] hover:bg-gray-50"
+                }`}
             >
               <Database className={`w-6 h-6 ${format === "json" ? "text-[#005B4F]" : "text-gray-400"}`} />
               <div>

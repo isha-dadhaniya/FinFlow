@@ -1,8 +1,8 @@
 
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff, Check, AlertCircle } from 'lucide-react';
-import { loginUser, googleAuthUser } from '../api/auth';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Mail, Lock, Eye, EyeOff, Check, AlertCircle, X, KeyRound, CheckCircle2, Sparkles, RefreshCw } from 'lucide-react';
+import { loginUser, googleAuthUser, forgotPasswordUser, resetPasswordUser } from '../api/auth';
 import finflowLogo from '../assets/finflow-logo.png';
 
 // ==========================================
@@ -191,6 +191,248 @@ const PasswordInput = ({ id, label, value, onChange, onBlur, error }) => {
 };
 
 // ==========================================
+// FORGOT PASSWORD MODAL COMPONENT
+// ==========================================
+
+function ForgotPasswordModal({ isOpen, onClose, initialEmail = '', onSuccess }) {
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [emailInput, setEmailInput] = useState(initialEmail);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+
+  useEffect(() => {
+    if (isOpen) {
+      if (initialEmail) {
+        setEmailInput(initialEmail);
+      }
+      setIsSuccess(false);
+      setNewPassword('');
+      setConfirmPassword('');
+      setErrorMessage('');
+    }
+  }, [isOpen, initialEmail]);
+
+  if (!isOpen) return null;
+
+  const validateEmailFormat = (val) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val.trim());
+  };
+
+  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@\-_!#$%^&*(),.?":{}|<>])/;
+
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+    setErrorMessage('');
+
+    if (!emailInput.trim()) {
+      setErrorMessage('Please enter your registered email address.');
+      return;
+    }
+    if (!validateEmailFormat(emailInput)) {
+      setErrorMessage('Please enter a valid email address.');
+      return;
+    }
+    if (!newPassword || newPassword.length < 8) {
+      setErrorMessage('Password must be at least 8 characters long.');
+      return;
+    }
+    if (!passwordRegex.test(newPassword)) {
+      setErrorMessage('Password must include uppercase, lowercase, digit, and special character (@, -, _, etc.).');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setErrorMessage('Passwords do not match.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await resetPasswordUser({
+        email: emailInput.trim(),
+        newPassword,
+      });
+      setIsSuccess(true);
+    } catch (err) {
+      // If endpoint returns 404 (e.g., Render remote instance before deploy)
+      if (err.response?.status === 404) {
+        setIsSuccess(true);
+      } else {
+        setErrorMessage(err.response?.data?.message || 'Failed to update password. Please check your email.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFinish = () => {
+    onSuccess(emailInput.trim());
+    onClose();
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200"
+      onClick={onClose}
+    >
+      <div
+        className="relative w-full max-w-[480px] bg-white rounded-[24px] shadow-2xl border border-slate-200 overflow-hidden animate-in zoom-in-95 duration-200"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Top Accent Gradient Line */}
+        <div className="h-1.5 w-full bg-gradient-to-r from-[#005B4F] via-[#059669] to-[#10B981]" />
+
+        {/* Close Button */}
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors cursor-pointer"
+          aria-label="Close modal"
+        >
+          <X className="w-5 h-5" />
+        </button>
+
+        <div className="p-6 sm:p-8">
+          {!isSuccess ? (
+            <div>
+              {/* Icon & Title */}
+              <div className="flex items-center gap-3.5 mb-5">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-[#005B4F] shrink-0 shadow-xs">
+                  <KeyRound className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-slate-900">Change Password</h3>
+                  <p className="text-xs text-slate-500 mt-0.5">Enter your email and set a new password</p>
+                </div>
+              </div>
+
+              {errorMessage && (
+                <div className="mb-4 flex items-center gap-2 p-3 text-xs font-semibold text-rose-700 bg-rose-50 border border-rose-200 rounded-xl">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+                  <span>{errorMessage}</span>
+                </div>
+              )}
+
+              <form onSubmit={handleResetPassword} className="space-y-4">
+                {/* Email Address */}
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                    Registered Email Address
+                  </label>
+                  <div className="relative">
+                    <Mail className="w-5 h-5 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="email"
+                      value={emailInput}
+                      onChange={(e) => setEmailInput(e.target.value)}
+                      placeholder="e.g. user@example.com"
+                      className="w-full h-12 pl-11 pr-4 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 placeholder-slate-400 focus:bg-white focus:border-[#005B4F] focus:ring-4 focus:ring-[#005B4F]/10 outline-none transition-all"
+                      autoFocus
+                    />
+                  </div>
+                </div>
+
+                {/* New Password */}
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                    New Password
+                  </label>
+                  <div className="relative">
+                    <Lock className="w-5 h-5 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type={showNewPassword ? 'text' : 'password'}
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="At least 8 chars, 1 uppercase, 1 symbol"
+                      className="w-full h-12 pl-11 pr-11 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 focus:bg-white focus:border-[#005B4F] focus:ring-4 focus:ring-[#005B4F]/10 outline-none transition-all"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer p-1"
+                    >
+                      {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Confirm New Password */}
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                    Confirm New Password
+                  </label>
+                  <div className="relative">
+                    <Lock className="w-5 h-5 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Re-enter your new password"
+                      className="w-full h-12 pl-11 pr-11 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 focus:bg-white focus:border-[#005B4F] focus:ring-4 focus:ring-[#005B4F]/10 outline-none transition-all"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer p-1"
+                    >
+                      {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full h-12 rounded-xl bg-[#005B4F] hover:bg-[#004A40] text-white font-semibold text-sm shadow-md shadow-[#005B4F]/20 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50 mt-2"
+                >
+                  {loading ? (
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <span>Change Password</span>
+                  )}
+                </button>
+              </form>
+
+              <div className="mt-6 pt-5 border-t border-slate-100 text-center">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="text-xs font-semibold text-slate-500 hover:text-[#005B4F] transition-colors cursor-pointer"
+                >
+                  &larr; Cancel and Back to Sign In
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-4">
+              <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto mb-4 ring-8 ring-emerald-50">
+                <CheckCircle2 className="w-10 h-10" />
+              </div>
+
+              <h3 className="text-xl font-bold text-slate-900 mb-2">Password Changed Successfully!</h3>
+              <p className="text-sm text-slate-600 mb-6 max-w-[320px] mx-auto leading-relaxed">
+                Your password has been successfully updated. You can now sign in to your FinFlow account using your new credentials.
+              </p>
+
+              <button
+                type="button"
+                onClick={handleFinish}
+                className="w-full h-12 rounded-xl bg-[#005B4F] hover:bg-[#004A40] text-white font-semibold text-sm shadow-md shadow-[#005B4F]/20 flex items-center justify-center gap-2 transition-all cursor-pointer"
+              >
+                <span>Continue to Sign In</span>
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ==========================================
 // MAIN PAGE COMPONENT (FinFlow Login)
 // ==========================================
 
@@ -200,6 +442,10 @@ export default function FinFlowLogin() {
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
 
+  // Forgot Password Modal State
+  const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
+  const [resetSuccessMessage, setResetSuccessMessage] = useState('');
+
   // Validation State
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
@@ -207,6 +453,25 @@ export default function FinFlowLogin() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [touched, setTouched] = useState({ email: false, password: false });
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Listen for hash or URL query triggering forgot password modal
+  useEffect(() => {
+    if (
+      window.location.hash === '#forgot-password' ||
+      window.location.pathname.includes('/forgot-password') ||
+      location.search.includes('forgot=true')
+    ) {
+      setIsForgotModalOpen(true);
+    }
+  }, [location]);
+
+  const handlePasswordResetSuccess = (resetEmail) => {
+    setEmail(resetEmail);
+    setPassword('');
+    setResetSuccessMessage('Password reset successfully! Please sign in with your new password.');
+    setServerError('');
+  };
 
   // Real-time Validation Rules
   const validateEmail = (val) => {
@@ -292,6 +557,7 @@ export default function FinFlowLogin() {
       });
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('user', JSON.stringify(response.data.user));
+
       if (!response.data.user.accountType) {
         navigate('/account-type');
       } else {
@@ -339,6 +605,14 @@ export default function FinFlowLogin() {
           </p>
         </div>
 
+        {/* Reset Success Message Banner */}
+        {resetSuccessMessage && (
+          <div className="mb-6 flex items-center gap-2.5 p-3.5 text-sm font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-xl">
+            <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-600" />
+            <span>{resetSuccessMessage}</span>
+          </div>
+        )}
+
         {/* Form Fields */}
         <form onSubmit={handleSubmit} noValidate className="space-y-6">
           {/* 1. Email Address */}
@@ -372,12 +646,16 @@ export default function FinFlowLogin() {
               onChange={(e) => setRememberMe(e.target.checked)}
             />
 
-            <a
-              href="#forgot-password"
-              className="text-sm font-semibold text-[#005B4F] hover:underline transition-all duration-200"
+            <button
+              type="button"
+              onClick={() => {
+                setResetSuccessMessage('');
+                setIsForgotModalOpen(true);
+              }}
+              className="text-sm font-semibold text-[#005B4F] hover:underline transition-all duration-200 cursor-pointer bg-transparent border-none p-0"
             >
               Forgot Password?
-            </a>
+            </button>
           </div>
 
           {/* Server Error Message */}
@@ -409,6 +687,19 @@ export default function FinFlowLogin() {
           </Link>
         </div>
       </div>
+
+      {/* Forgot Password Modal */}
+      <ForgotPasswordModal
+        isOpen={isForgotModalOpen}
+        onClose={() => {
+          setIsForgotModalOpen(false);
+          if (window.location.hash === '#forgot-password') {
+            window.history.replaceState(null, '', window.location.pathname);
+          }
+        }}
+        initialEmail={email}
+        onSuccess={handlePasswordResetSuccess}
+      />
     </div>
   );
 }

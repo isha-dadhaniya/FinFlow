@@ -77,7 +77,10 @@ function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/landing" element={<LandingPage />} />
           <Route path="/SignUp" element={<SignUp />} />
+          <Route path="/signup" element={<SignUp />} />
           <Route path="/Login" element={<Login />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/forgot-password" element={<Login />} />
           <Route path="/account-type" element={<AccountTypeSelection />} />
 
           {/* Legacy redirect */}

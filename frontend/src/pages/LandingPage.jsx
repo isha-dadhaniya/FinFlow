@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import {
   ArrowRight,
   TrendingUp,
@@ -139,14 +139,10 @@ function useCounter(end, duration = 2000, startWhenVisible = false) {
    LIGHT-THEMED LANDING PAGE COMPONENT
    ═══════════════════════════════════════════════════ */
 export default function LandingPage() {
-  const navigate = useNavigate();
   const pageRef = useScrollReveal();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [activeWorkspaceTab, setActiveWorkspaceTab] = useState("business");
-
-  // Authentication check
-  const isAuthenticated = Boolean(localStorage.getItem("token"));
 
   // Interactive EMI Calculator State
   const [loanAmount, setLoanAmount] = useState(1200000); // ₹12 Lakhs
@@ -267,31 +263,19 @@ export default function LandingPage() {
 
           {/* Auth Actions */}
           <div className="hidden md:flex items-center gap-4">
-            {isAuthenticated ? (
-              <button
-                onClick={() => navigate("/app/dashboard")}
-                className="ff-btn-primary"
-              >
-                <span>Go to Dashboard</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            ) : (
-              <>
-                <Link
-                  to="/Login"
-                  className="text-sm font-bold text-[#334155] hover:text-[#059669] px-4 py-2 transition-colors"
-                >
-                  Sign In
-                </Link>
-                <Link
-                  to="/SignUp"
-                  className="ff-btn-primary"
-                >
-                  <span>Start Free</span>
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
-              </>
-            )}
+            <Link
+              to="/Login"
+              className="text-sm font-bold text-[#334155] hover:text-[#059669] px-4 py-2 transition-colors"
+            >
+              Sign In
+            </Link>
+            <Link
+              to="/SignUp"
+              className="ff-btn-primary"
+            >
+              <span>Sign Up</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
           </div>
 
           {/* Mobile Menu Toggle Button */}
@@ -316,31 +300,21 @@ export default function LandingPage() {
             </div>
 
             <div className="flex flex-col gap-3 pt-4 border-t border-slate-100">
-              {isAuthenticated ? (
-                <button
-                  onClick={() => navigate("/app/dashboard")}
-                  className="ff-btn-primary w-full"
-                >
-                  <span>Go to Dashboard</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              ) : (
-                <>
-                  <Link
-                    to="/Login"
-                    className="w-full h-11 rounded-full border border-slate-200 bg-white text-[#334155] font-bold text-sm flex items-center justify-center hover:bg-slate-50 transition-colors"
-                  >
-                    Sign In
-                  </Link>
-                  <Link
-                    to="/SignUp"
-                    className="ff-btn-primary w-full"
-                  >
-                    <span>Get Started Free</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </Link>
-                </>
-              )}
+              <Link
+                to="/Login"
+                onClick={() => setMobileMenuOpen(false)}
+                className="w-full h-11 rounded-full border border-slate-200 bg-white text-[#334155] font-bold text-sm flex items-center justify-center hover:bg-slate-50 transition-colors"
+              >
+                Sign In
+              </Link>
+              <Link
+                to="/SignUp"
+                onClick={() => setMobileMenuOpen(false)}
+                className="ff-btn-primary w-full"
+              >
+                <span>Sign Up</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
             </div>
           </div>
         )}

@@ -348,10 +348,10 @@ export default function LandingPage() {
               <span>Start Free Today</span>
               <ArrowRight className="w-5 h-5" />
             </Link>
-            <a href="#how-it-works" className="ff-btn-secondary w-full sm:w-auto text-base">
+            {/* <a href="#how-it-works" className="ff-btn-secondary w-full sm:w-auto text-base">
               <span>Explore Live Flow</span>
               <ArrowUpRight className="w-4 h-4 text-slate-400" />
-            </a>
+            </a> */}
           </div>
 
           {/* 3D Dashboard Mockup in Light Theme */}
@@ -572,7 +572,7 @@ export default function LandingPage() {
               </div>
               <h3 className="text-xl font-bold text-[#0F172A] mb-3">Multi-Workspace Isolation</h3>
               <p className="text-sm text-[#475569] leading-relaxed mb-6">
-                Switch effortlessly between Personal Vault, Shared Family, and Business profiles. Accounts and transactions stay strictly partitioned.
+                Easily switch between Personal, Family, and Business accounts. Each workspace keeps its own accounts and transactions separate.
               </p>
             </div>
 
@@ -583,8 +583,8 @@ export default function LandingPage() {
               </div>
               <h3 className="text-xl font-bold text-[#0F172A] mb-3">Project Budget Approval System</h3>
               <p className="text-sm text-[#475569] leading-relaxed mb-6">
-                Expenses submitted to projects automatically route through an approval gate. Rejected claims preserve remaining project balances.
-              </p>
+                Expenses submitted for a project are sent for approval. If an expense is rejected, the project’s remaining budget stays unchanged.              
+                </p>
             </div>
 
             {/* Feature 3: Live Expense Analytics */}
@@ -594,7 +594,7 @@ export default function LandingPage() {
               </div>
               <h3 className="text-xl font-bold text-[#0F172A] mb-3">Deep Spending Analytics</h3>
               <p className="text-sm text-[#475569] leading-relaxed mb-6">
-                Gain instant clarity on cash burn by categories, vendors, and tags with automated categorization and intelligent trend reports.
+                Easily track where your money is spent by category, vendor, and tag. Expenses are automatically organized, and reports help you understand spending trends.
               </p>
             </div>
 
@@ -605,7 +605,7 @@ export default function LandingPage() {
               </div>
               <h3 className="text-xl font-bold text-[#0F172A] mb-3">Family & Household Splits</h3>
               <p className="text-sm text-[#475569] leading-relaxed mb-6">
-                Split groceries, maid payments, school fees, and rent among family members with automated settlement ledgers.
+                Easily share expenses like groceries, maid payments, school fees, and rent among family members. Automatically calculate who owes whom and how much they need to pay.
               </p>
             </div>
 
@@ -616,7 +616,7 @@ export default function LandingPage() {
               </div>
               <h3 className="text-xl font-bold text-[#0F172A] mb-3">GST Invoices & Vendor Tracking</h3>
               <p className="text-sm text-[#475569] leading-relaxed mb-6">
-                Create clean GST-ready invoices, manage outstanding vendor bills, and monitor payment cycles without extra software.
+                Create GST-compliant invoices, track unpaid vendor bills, and manage payment due dates—all in one place without needing extra software.
               </p>
             </div>
 
@@ -627,7 +627,7 @@ export default function LandingPage() {
               </div>
               <h3 className="text-xl font-bold text-[#0F172A] mb-3">Bank-Grade Privacy & Encryption</h3>
               <p className="text-sm text-[#475569] leading-relaxed mb-6">
-                Your data is strictly protected with token-based session isolation, encrypted passwords, and multi-tenant security architecture.
+                Your data stays secure with protected login sessions, encrypted passwords, and separate data storage for each workspace.
               </p>
             </div>
 

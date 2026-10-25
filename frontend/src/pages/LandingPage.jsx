@@ -328,15 +328,6 @@ export default function LandingPage() {
         <GuillocheRosette size={560} className="top-1/3 -left-36 hidden lg:block" reverse />
 
         <div className="max-w-7xl mx-auto px-5 sm:px-8 relative z-10">
-          
-          {/* Top Pill Announcement */}
-          <div className="flex justify-center mb-6 ff-reveal">
-            <div className="ff-badge shadow-xs">
-              <span className="ff-pulse-dot" />
-              <span>India's Next-Gen Wealth & Expense Operating System</span>
-              <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-            </div>
-          </div>
 
           {/* Hero Headlines */}
           <div className="text-center max-w-4xl mx-auto mb-10 ff-reveal">

@@ -1032,7 +1032,7 @@ export default function LandingPage() {
       </section>
 
       {/* ───────────────── TESTIMONIALS ───────────────── */}
-      <section id="testimonials" className="py-24 bg-transparent overflow-hidden">
+      {/* <section id="testimonials" className="py-24 bg-transparent overflow-hidden">
         <div className="max-w-7xl mx-auto px-5 sm:px-8 mb-14 text-center ff-reveal">
           <span className="text-xs font-extrabold uppercase tracking-widest text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
             Real User Stories
@@ -1043,10 +1043,10 @@ export default function LandingPage() {
           <p className="text-base text-[#475569]">
             Here is how everyday users optimize their capital with FinFlow.
           </p>
-        </div>
+        </div> */}
 
         {/* Marquee Track */}
-        <div className="ff-marquee-track gap-6 px-4">
+        {/* <div className="ff-marquee-track gap-6 px-4">
           {[...testimonials, ...testimonials].map((t, idx) => (
             <div
               key={idx}
@@ -1079,7 +1079,7 @@ export default function LandingPage() {
             </div>
           ))}
         </div>
-      </section>
+      </section> */}
 
       {/* ───────────────── HIGH-CONVERSION CTA BANNER ───────────────── */}
       <section className="py-20 bg-transparent">
